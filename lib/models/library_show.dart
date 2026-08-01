@@ -14,4 +14,24 @@ class LibraryShow {
     required this.runtime,
     this.lastWatched,
   });
+
+  factory LibraryShow.fromJson(Map<String, dynamic> json) {
+    return LibraryShow(
+      show: Show.fromJson(json['show']),
+      watchedEpisodes: json['watchedEpisodes'] ?? 0,
+      airedEpisodes: json['airedEpisodes'] ?? 0,
+      runtime: json['runtime'] ?? 0,
+      lastWatched: json['lastWatched'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'show': show.toJson(),
+      'watchedEpisodes': watchedEpisodes,
+      'airedEpisodes': airedEpisodes,
+      'runtime': runtime,
+      'lastWatched': lastWatched,
+    };
+  }
 }

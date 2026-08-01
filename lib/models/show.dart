@@ -49,4 +49,23 @@ class Show {
       userNotes: json['user_notes'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'api_id': apiId,
+      'title': title,
+      'genre': genre,
+      'overview': overview,
+      'poster_url': posterUrl,
+      'total_episodes': totalEpisodes,
+      'status': status,
+      'type': type,
+      'timezone_offset': timezoneOffset,
+      'is_stopped': isStopped,
+      'user_rating': userRating,
+      'custom_tags': customTags,
+      'user_notes': userNotes,
+    };
+  }
 }

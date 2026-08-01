@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/show.dart';
 import '../models/library_show.dart';
 import 'tmdb_service.dart';
@@ -34,81 +36,119 @@ Future<List<dynamic>> _fetchAll(SupabaseClient client, String table, String sele
   return allData;
 }
 
-final libraryProvider = FutureProvider<List<LibraryShow>>((ref) async {
-  final client = ref.read(supabaseClientProvider);
-  
-  // Fetch all data in parallel
-  final results = await Future.wait([
-    _fetchAll(client, 'shows', '*'),
-    _fetchAll(client, 'episodes', 'id, show_id, season_number, runtime, air_date'),
-    _fetchAll(client, 'watch_history', 'id, episode_id, watched_at'),
-  ]);
+class LibraryNotifier extends AsyncNotifier<List<LibraryShow>> {
+  static const _cacheKey = 'tvt_lib_cache';
 
-  final showsRaw = results[0] as List<dynamic>;
-  final epsRaw = results[1] as List<dynamic>;
-  final histRaw = results[2] as List<dynamic>;
-
-  final shows = showsRaw.map((e) => Show.fromJson(e)).toList();
-
-  // Map to group episodes by show ID
-  final Map<int, List<Map<String, dynamic>>> showEpisodes = {};
-  for (var show in shows) {
-    showEpisodes[show.id] = [];
-  }
-
-  // Map to group watch history by episode ID
-  final Map<int, List<Map<String, dynamic>>> epHistory = {};
-  
-  for (var ep in epsRaw) {
-    epHistory[ep['id']] = [];
-    if (showEpisodes.containsKey(ep['show_id'])) {
-      showEpisodes[ep['show_id']]!.add(ep as Map<String, dynamic>);
-    }
-  }
-
-  for (var h in histRaw) {
-    if (epHistory.containsKey(h['episode_id'])) {
-      epHistory[h['episode_id']]!.add(h as Map<String, dynamic>);
-    }
-  }
-
-  final now = DateTime.now();
-
-  return shows.map((s) {
-    int watched = 0;
-    int aired = 0;
-    int lastWatched = 0;
-    int runtime = 0;
-
-    final episodes = showEpisodes[s.id] ?? [];
-    for (var ep in episodes) {
-      if ((ep['season_number'] ?? 0) > 0) {
-        if (ep['air_date'] != null) {
-          final airDate = DateTime.tryParse(ep['air_date']);
-          if (airDate != null && airDate.compareTo(now) <= 0) {
-            aired++;
-          }
-        }
+  @override
+  Future<List<LibraryShow>> build() async {
+    // 1. Try to load from cache
+    final prefs = await SharedPreferences.getInstance();
+    final cachedStr = prefs.getString(_cacheKey);
+    
+    if (cachedStr != null) {
+      try {
+        final decoded = json.decode(cachedStr) as List;
+        final cachedLib = decoded.map((e) => LibraryShow.fromJson(e)).toList();
         
-        final history = epHistory[ep['id']] ?? [];
-        if (history.isNotEmpty) {
-          watched++;
-          runtime += (ep['runtime'] as int? ?? 0);
-          final wAt = DateTime.tryParse(history[0]['watched_at'] ?? '')?.millisecondsSinceEpoch ?? 0;
-          if (wAt > lastWatched) lastWatched = wAt;
-        }
+        // 2. Trigger background refresh
+        _refresh(prefs);
+        return cachedLib;
+      } catch (e) {
+        // Cache invalid or error parsing
+      }
+    }
+    
+    // 3. Fallback to normal fetch
+    return _fetchFromNetwork(prefs);
+  }
+
+  Future<void> _refresh(SharedPreferences prefs) async {
+    try {
+      final fresh = await _fetchFromNetwork(prefs);
+      state = AsyncData(fresh);
+    } catch (e) {
+      // Background refresh failed, keep old state
+    }
+  }
+
+  Future<List<LibraryShow>> _fetchFromNetwork(SharedPreferences prefs) async {
+    final client = ref.read(supabaseClientProvider);
+    
+    final results = await Future.wait([
+      _fetchAll(client, 'shows', '*'),
+      _fetchAll(client, 'episodes', 'id, show_id, season_number, runtime, air_date'),
+      _fetchAll(client, 'watch_history', 'id, episode_id, watched_at'),
+    ]);
+
+    final showsRaw = results[0] as List<dynamic>;
+    final epsRaw = results[1] as List<dynamic>;
+    final histRaw = results[2] as List<dynamic>;
+
+    final shows = showsRaw.map((e) => Show.fromJson(e)).toList();
+
+    final Map<int, List<Map<String, dynamic>>> showEpisodes = {};
+    for (var show in shows) {
+      showEpisodes[show.id] = [];
+    }
+
+    final Map<int, List<Map<String, dynamic>>> epHistory = {};
+    for (var ep in epsRaw) {
+      epHistory[ep['id']] = [];
+      if (showEpisodes.containsKey(ep['show_id'])) {
+        showEpisodes[ep['show_id']]!.add(ep as Map<String, dynamic>);
       }
     }
 
-    return LibraryShow(
-      show: s,
-      watchedEpisodes: watched,
-      airedEpisodes: aired,
-      runtime: runtime,
-      lastWatched: lastWatched > 0 ? DateTime.fromMillisecondsSinceEpoch(lastWatched).toIso8601String() : null,
-    );
-  }).toList();
-});
+    for (var h in histRaw) {
+      if (epHistory.containsKey(h['episode_id'])) {
+        epHistory[h['episode_id']]!.add(h as Map<String, dynamic>);
+      }
+    }
+
+    final now = DateTime.now();
+
+    final lib = shows.map((s) {
+      int watched = 0;
+      int aired = 0;
+      int lastWatched = 0;
+      int runtime = 0;
+
+      final episodes = showEpisodes[s.id] ?? [];
+      for (var ep in episodes) {
+        if ((ep['season_number'] ?? 0) > 0) {
+          if (ep['air_date'] != null) {
+            final airDate = DateTime.tryParse(ep['air_date']);
+            if (airDate != null && airDate.compareTo(now) <= 0) {
+              aired++;
+            }
+          }
+          
+          final history = epHistory[ep['id']] ?? [];
+          if (history.isNotEmpty) {
+            watched++;
+            runtime += (ep['runtime'] as int? ?? 0);
+            final wAt = DateTime.tryParse(history[0]['watched_at'] ?? '')?.millisecondsSinceEpoch ?? 0;
+            if (wAt > lastWatched) lastWatched = wAt;
+          }
+        }
+      }
+
+      return LibraryShow(
+        show: s,
+        watchedEpisodes: watched,
+        airedEpisodes: aired,
+        runtime: runtime,
+        lastWatched: lastWatched > 0 ? DateTime.fromMillisecondsSinceEpoch(lastWatched).toIso8601String() : null,
+      );
+    }).toList();
+
+    // Save to cache
+    await prefs.setString(_cacheKey, json.encode(lib.map((e) => e.toJson()).toList()));
+    return lib;
+  }
+}
+
+final libraryProvider = AsyncNotifierProvider<LibraryNotifier, List<LibraryShow>>(LibraryNotifier.new);
 
 class CalendarEpisode {
   final int showId;

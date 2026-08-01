@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/tmdb_service.dart';
 import '../services/supabase_service.dart';
+import '../models/show.dart';
 import '../theme/app_theme.dart';
 
 class ShowDetailsScreen extends ConsumerStatefulWidget {
@@ -231,20 +232,43 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
   }
 
   Future<void> _addMedia(bool markSeen) async {
-    setState(() => _isAddingMedia = true);
-    try {
-      await SupabaseActions.addMedia(widget.tmdbId, widget.type, markSeen: markSeen);
+    // Optimistic UI Update
+    setState(() {
+      localData = SupabaseShowDetails(
+        show: Show(
+          id: 0,
+          apiId: widget.tmdbId,
+          title: tmdbData?['title'] ?? tmdbData?['name'] ?? 'Unknown',
+          genre: '',
+          totalEpisodes: 1,
+          type: widget.type,
+          timezoneOffset: 0,
+          isStopped: 0,
+        ),
+        episodes: [],
+        watchedEpisodeIds: [],
+      );
+      _isAddingMedia = true;
+    });
+
+    // Fire and forget background job
+    SupabaseActions.addMedia(widget.tmdbId, widget.type, markSeen: markSeen).then((_) {
+      if (mounted) {
+        setState(() => _isAddingMedia = false);
+      }
+      // Trigger background syncs for other providers
       ref.invalidate(showsProvider);
       ref.invalidate(libraryProvider);
       ref.invalidate(calendarProvider);
-      await _fetchData(); // Reload localData
-    } catch (e) {
+    }).catchError((e) {
       if (mounted) {
+        setState(() {
+          localData = null; // Revert optimistic update
+          _isAddingMedia = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error adding media: $e')));
       }
-    } finally {
-      if (mounted) setState(() => _isAddingMedia = false);
-    }
+    });
   }
 
   List<Widget> _buildTrailerButton(List<dynamic> videos) {

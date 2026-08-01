@@ -9,11 +9,25 @@ import 'package:intl/intl.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 
-class CalendarScreen extends ConsumerWidget {
+class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends ConsumerState<CalendarScreen> {
+  bool _hidePast = true; // Default to hiding past
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final calendarAsync = ref.watch(calendarProvider);
 
     return Scaffold(
@@ -21,6 +35,30 @@ class CalendarScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('Calendar'),
         actions: [
+          IconButton(
+            icon: Icon(_hidePast ? Icons.visibility_off_rounded : Icons.visibility_rounded),
+            tooltip: _hidePast ? 'Show Past 30 Days' : 'Hide Past',
+            onPressed: () {
+              setState(() {
+                _hidePast = !_hidePast;
+              });
+              if (_hidePast && _scrollController.hasClients) {
+                _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+              }
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.today_rounded),
+            tooltip: 'Go to Today',
+            onPressed: () {
+              setState(() {
+                _hidePast = true; // Hiding past ensures Today is at the top
+              });
+              if (_scrollController.hasClients) {
+                _scrollController.animateTo(0, duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+              }
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.download_rounded),
             tooltip: 'Export .ics',
@@ -54,15 +92,20 @@ class CalendarScreen extends ConsumerWidget {
 
           // Group by Date
           final Map<String, List<CalendarEpisode>> grouped = {};
+          final now = DateTime.now();
+          final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
           for (var ep in calendarData) {
+            if (_hidePast && ep.airDate.compareTo(todayStr) < 0) {
+              continue;
+            }
             grouped.putIfAbsent(ep.airDate, () => []).add(ep);
           }
 
           final sortedDates = grouped.keys.toList()..sort();
-          final now = DateTime.now();
-          final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
           return CustomScrollView(
+            controller: _scrollController,
             slivers: [
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

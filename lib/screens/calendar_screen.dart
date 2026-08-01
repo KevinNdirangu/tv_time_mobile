@@ -77,12 +77,78 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           final today = DateTime.now();
           final todayStr = DateFormat('yyyy-MM-dd').format(today);
 
+          final pastDates = sortedDates.where((d) => d.compareTo(todayStr) < 0).toList();
+          final futureDates = sortedDates.where((d) => d.compareTo(todayStr) >= 0).toList();
+
           return Stack(
             children: [
               CustomScrollView(
                 controller: _scrollController,
                 slivers: [
-                  for (var dateStr in sortedDates)
+                  if (pastDates.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Theme(
+                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            collapsedBackgroundColor: AppTheme.surfaceLight,
+                            backgroundColor: AppTheme.surfaceLight,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Colors.white10),
+                            ),
+                            collapsedShape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Colors.white10),
+                            ),
+                            title: Text(
+                              'Show Past 30 Days (${pastDates.fold<int>(0, (sum, d) => sum + grouped[d]!.length)} Items)',
+                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMuted),
+                            ),
+                            children: pastDates.map((dateStr) {
+                              final eps = grouped[dateStr]!;
+                              final date = DateTime.parse(dateStr);
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                    child: Text(
+                                      DateFormat('EEEE, MMMM d').format(date),
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textMain),
+                                    ),
+                                  ),
+                                  GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: const NeverScrollableScrollPhysics(),
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 3,
+                                      childAspectRatio: 0.65,
+                                      crossAxisSpacing: 10,
+                                      mainAxisSpacing: 10,
+                                    ),
+                                    itemCount: eps.length,
+                                    itemBuilder: (context, index) => _buildEpisodeCard(context, eps[index], date, false),
+                                  ),
+                                ],
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  
+                  if (futureDates.isEmpty)
+                    const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Center(child: Text('All caught up! No upcoming media scheduled.', style: TextStyle(color: AppTheme.textMuted))),
+                      ),
+                    ),
+                  
+                  for (var dateStr in futureDates)
                     ..._buildDateSection(dateStr, grouped[dateStr]!, todayStr),
                 ],
               ),

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/show.dart';
 import '../models/library_show.dart';
+import 'tmdb_service.dart';
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
@@ -215,6 +216,114 @@ class SupabaseActions {
       await client.from('watch_history').insert({'id': nextId, 'episode_id': episodeId});
     } else {
       await client.from('watch_history').delete().eq('episode_id', episodeId);
+    }
+  }
+
+  static Future<void> addMedia(int tmdbId, String type, {bool markSeen = false}) async {
+    final client = Supabase.instance.client;
+    final data = await TmdbService.getDetails(tmdbId, type);
+    if (data == null) throw Exception('TMDB data not found');
+
+    final posterUrl = data['poster_path'] != null ? 'https://image.tmdb.org/t/p/w500${data['poster_path']}' : '';
+    final isMovie = type == 'movie';
+
+    List<Map<String, dynamic>> allEpisodes = [];
+    if (isMovie) {
+      allEpisodes.add({
+        'season_number': 1,
+        'episode_number': 1,
+        'name': data['title'],
+        'air_date': data['release_date'],
+        'runtime': data['runtime'],
+      });
+    } else {
+      final numSeasons = data['number_of_seasons'] ?? 0;
+      for (int i = 1; i <= numSeasons; i++) {
+        final sData = await TmdbService.getSeasonDetails(tmdbId, i);
+        if (sData != null && sData['episodes'] != null) {
+          allEpisodes.addAll(List<Map<String, dynamic>>.from(sData['episodes']));
+        }
+      }
+    }
+
+    // Timezone shift logic (simplified for dart: skip check for now, default to false, since dart doesn't have IPC settings easily)
+    bool shouldShift = false;
+
+    // Check if show exists
+    final existingShow = await client.from('shows').select('id').eq('api_id', data['id']).maybeSingle();
+    int localId;
+
+    if (existingShow != null) {
+      localId = existingShow['id'];
+    } else {
+      // Calculate next ID
+      final maxIdData = await client.from('shows').select('id').order('id', ascending: false).limit(1).maybeSingle();
+      final nextShowId = (maxIdData != null ? maxIdData['id'] as int : 0) + 1;
+
+      final insertData = {
+        'id': nextShowId,
+        'api_id': data['id'],
+        'title': data['title'] ?? data['name'],
+        'genre': ((data['genres'] ?? []) as List).map((g) => g['name']).join(', '),
+        'overview': data['overview'],
+        'poster_url': posterUrl,
+        'total_episodes': isMovie ? 1 : (data['number_of_episodes'] ?? 0),
+        'status': data['status'],
+        'type': type,
+        'timezone_offset': shouldShift ? 1 : 0,
+      };
+
+      final res = await client.from('shows').insert(insertData).select().single();
+      localId = res['id'];
+    }
+
+    // Insert episodes
+    final existingEps = await client.from('episodes').select('season_number, episode_number').eq('show_id', localId);
+    final existingSet = Set<String>.from((existingEps as List).map((e) => '${e['season_number']}-${e['episode_number']}'));
+
+    List<Map<String, dynamic>> newEps = [];
+    for (var ep in allEpisodes) {
+      if (ep['season_number'] > 0 && !existingSet.contains('${ep['season_number']}-${ep['episode_number']}')) {
+        String finalAirDate = ep['air_date'] ?? '';
+        newEps.add({
+          'show_id': localId,
+          'season_number': ep['season_number'],
+          'episode_number': ep['episode_number'],
+          'title': ep['name'],
+          'air_date': finalAirDate.isEmpty ? null : finalAirDate,
+          'runtime': ep['runtime'] ?? 0,
+        });
+      }
+    }
+
+    List<dynamic> insertedEps = [];
+    if (newEps.isNotEmpty) {
+      // Chunking insert to avoid limits
+      for (int i = 0; i < newEps.length; i += 100) {
+        final chunk = newEps.sublist(i, i + 100 > newEps.length ? newEps.length : i + 100);
+        final res = await client.from('episodes').insert(chunk).select('id');
+        insertedEps.addAll(res);
+      }
+    }
+
+    if (markSeen) {
+      final allEpsDb = await client.from('episodes').select('id').eq('show_id', localId);
+      final allEpIds = (allEpsDb as List).map((e) => e['id'] as int).toList();
+      
+      final maxWatchIdData = await client.from('watch_history').select('id').order('id', ascending: false).limit(1).maybeSingle();
+      int nextWatchId = (maxWatchIdData != null ? maxWatchIdData['id'] as int : 0) + 1;
+
+      List<Map<String, dynamic>> watchInserts = [];
+      for (var epId in allEpIds) {
+        watchInserts.add({'id': nextWatchId++, 'episode_id': epId});
+      }
+
+      if (watchInserts.isNotEmpty) {
+        for (int i = 0; i < watchInserts.length; i += 100) {
+          final chunk = watchInserts.sublist(i, i + 100 > watchInserts.length ? watchInserts.length : i + 100);
+          await client.from('watch_history').upsert(chunk, onConflict: 'episode_id');
+        }
+      }
     }
   }
 }

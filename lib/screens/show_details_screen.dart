@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/tmdb_service.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
@@ -18,6 +19,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
   Map<String, dynamic>? tmdbData;
   SupabaseShowDetails? localData;
   bool isLoading = true;
+  bool _isAddingMedia = false;
 
   @override
   void initState() {
@@ -87,27 +89,66 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Action Buttons
-                  Row(
-                    children: [
-                      Expanded(
-                        child: localData == null 
-                        ? ElevatedButton.icon(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please use the web app to add new shows for now.')));
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.surfaceLight,
-                              foregroundColor: AppTheme.textMuted,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  if (localData == null)
+                    Row(
+                      children: [
+                        if (widget.type == 'movie') ...[
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isAddingMedia ? null : () => _addMedia(false),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFFFF9F0A),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: _isAddingMedia
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Text('Add to Watchlist', style: TextStyle(fontWeight: FontWeight.bold)),
                             ),
-                            icon: const Icon(Icons.add),
-                            label: const Text('Not in Library', style: TextStyle(fontWeight: FontWeight.bold)),
-                          )
-                        : ElevatedButton.icon(
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: _isAddingMedia ? null : () => _addMedia(true),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF34C759),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: _isAddingMedia
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : const Text('Mark as Seen', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ] else ...[
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _isAddingMedia ? null : () => _addMedia(false),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              icon: _isAddingMedia ? const SizedBox.shrink() : const Icon(Icons.add),
+                              label: _isAddingMedia
+                                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.black, strokeWidth: 2))
+                                  : const Text('Add to Library', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ],
+                    )
+                  else
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
                             onPressed: () {},
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primary.withOpacity(0.1),
+                              backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                               foregroundColor: AppTheme.primary,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppTheme.primary)),
@@ -115,20 +156,71 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                             icon: const Icon(Icons.check),
                             label: const Text('In Library', style: TextStyle(fontWeight: FontWeight.bold)),
                           ),
+                        ),
+                      ],
+                    ),
+
+                  const SizedBox(height: 24),
+
+                  // Meta & Ratings
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceLight,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          widget.type.toUpperCase(),
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
                       ),
+                      if (tmdbData!['vote_average'] != null) ...[
+                        const SizedBox(width: 16),
+                        const Icon(Icons.star, color: Color(0xFFFFD600), size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${(tmdbData!['vote_average'] as num).toStringAsFixed(1)}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
+                        ),
+                        const Text(' / 10', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                      ],
+                      if (tmdbData!['status'] != null) ...[
+                        const SizedBox(width: 16),
+                        Text(
+                          tmdbData!['status'],
+                          style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                        ),
+                      ],
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  if (tmdbData!['genres'] != null)
+                    Text(
+                      ((tmdbData!['genres'] as List).map((g) => g['name']).join(', ')),
+                      style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
+                    ),
+
                   const SizedBox(height: 24),
                   const Text('Overview', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
                   const SizedBox(height: 8),
                   Text(overview, style: const TextStyle(color: AppTheme.textMuted, height: 1.5)),
                   const SizedBox(height: 24),
                   
-                  if (widget.type == 'tv') ...[
+                  // Trailer Button
+                  if (tmdbData!['videos'] != null && tmdbData!['videos']['results'] != null)
+                    ..._buildTrailerButton(tmdbData!['videos']['results']),
+
+                  if (widget.type == 'tv' && localData != null) ...[
                     const Text('Seasons', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
                     const SizedBox(height: 16),
                     _buildSeasonsList(),
                   ],
+
+                  // Recommendations
+                  if (tmdbData!['recommendations'] != null && tmdbData!['recommendations']['results'] != null && (tmdbData!['recommendations']['results'] as List).isNotEmpty)
+                    ..._buildRecommendations(tmdbData!['recommendations']['results']),
                 ],
               ),
             ),
@@ -136,6 +228,106 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _addMedia(bool markSeen) async {
+    setState(() => _isAddingMedia = true);
+    try {
+      await SupabaseActions.addMedia(widget.tmdbId, widget.type, markSeen: markSeen);
+      ref.invalidate(showsProvider);
+      ref.invalidate(libraryProvider);
+      ref.invalidate(calendarProvider);
+      await _fetchData(); // Reload localData
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error adding media: $e')));
+      }
+    } finally {
+      if (mounted) setState(() => _isAddingMedia = false);
+    }
+  }
+
+  List<Widget> _buildTrailerButton(List<dynamic> videos) {
+    final tr = videos.cast<Map<String, dynamic>>().firstWhere(
+      (v) => v['type'] == 'Trailer' && v['site'] == 'YouTube',
+      orElse: () => <String, dynamic>{},
+    );
+    if (tr.isEmpty) return [];
+
+    return [
+      ElevatedButton.icon(
+        onPressed: () async {
+          final url = Uri.parse('https://youtube.com/watch?v=${tr['key']}');
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFFF3B30),
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        icon: const Icon(Icons.play_arrow),
+        label: const Text('Watch Trailer', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      const SizedBox(height: 24),
+    ];
+  }
+
+  List<Widget> _buildRecommendations(List<dynamic> recs) {
+    return [
+      const Divider(color: Colors.white10, height: 40),
+      const Text('Similar & Recommended', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+      const SizedBox(height: 16),
+      SizedBox(
+        height: 180,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: recs.length > 10 ? 10 : recs.length,
+          itemBuilder: (context, index) {
+            final rec = recs[index];
+            final posterPath = rec['poster_path'];
+            final recType = rec['media_type'] ?? widget.type;
+            
+            return GestureDetector(
+              onTap: () {
+                Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => ShowDetailsScreen(
+                  tmdbId: rec['id'],
+                  type: recType,
+                )));
+              },
+              child: Container(
+                width: 100,
+                margin: const EdgeInsets.only(right: 12),
+                child: Column(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: posterPath != null
+                          ? Image.network(
+                              'https://image.tmdb.org/t/p/w200$posterPath',
+                              width: 100,
+                              height: 150,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(width: 100, height: 150, color: AppTheme.surfaceLight),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      rec['title'] ?? rec['name'] ?? '',
+                      style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    ];
   }
 
   Widget _buildSeasonsList() {

@@ -18,6 +18,9 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   Timer? _debounce;
   List<dynamic> _results = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  int _page = 1;
+  final ScrollController _scrollController = ScrollController();
 
   String _currentType = 'all'; // all, movie, tv, anime
   String _currentGenre = 'all';
@@ -42,11 +45,42 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   void initState() {
     super.initState();
     _loadTrending();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoading && !_isLoadingMore) {
+        _loadMore();
+      }
+    }
+  }
+
+  Future<void> _loadMore() async {
+    setState(() => _isLoadingMore = true);
+    _page++;
+    
+    List<dynamic> newResults = [];
+    if (_searchController.text.trim().isEmpty) {
+      newResults = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
+    } else {
+      newResults = await TmdbService.search(_searchController.text.trim(), page: _page);
+      newResults = newResults.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
+    }
+    
+    if (!mounted) return;
+    setState(() {
+      _results.addAll(newResults);
+      _isLoadingMore = false;
+    });
   }
 
   Future<void> _loadTrending() async {
-    setState(() => _isLoading = true);
-    final results = await TmdbService.getTrending(type: _currentType, genre: _currentGenre);
+    setState(() {
+      _isLoading = true;
+      _page = 1;
+    });
+    final results = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
     if (!mounted) return;
     setState(() {
       _results = results;
@@ -61,8 +95,11 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         _loadTrending();
         return;
       }
-      setState(() => _isLoading = true);
-      final results = await TmdbService.search(query);
+      setState(() {
+        _isLoading = true;
+        _page = 1;
+      });
+      final results = await TmdbService.search(query, page: _page);
       if (!mounted) return;
       setState(() {
         _results = results.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
@@ -73,6 +110,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _searchController.dispose();
     _debounce?.cancel();
     super.dispose();
@@ -174,6 +212,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                   : filteredResults.isEmpty
                       ? const Center(child: Text('No results found (or all are in your library).', style: TextStyle(color: AppTheme.textMuted)))
                       : GridView.builder(
+                          controller: _scrollController,
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
                             childAspectRatio: 0.65,

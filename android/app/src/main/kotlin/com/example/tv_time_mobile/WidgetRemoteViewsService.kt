@@ -68,12 +68,22 @@ class WidgetRemoteViewsFactory(private val context: Context, private val intent:
             rv.setViewVisibility(R.id.item_network_badge, android.view.View.GONE)
         }
 
-        if (!item.airDate.isNullOrEmpty() || !item.airTime.isNullOrEmpty()) {
-            rv.setTextViewText(R.id.item_air_date, item.airDate ?: "")
-            rv.setTextViewText(R.id.item_air_time, item.airTime ?: "")
-            rv.setViewVisibility(R.id.item_right_container, android.view.View.VISIBLE)
-        } else {
+        if (item.airDate.isNullOrEmpty() && item.airTime.isNullOrEmpty()) {
             rv.setViewVisibility(R.id.item_right_container, android.view.View.GONE)
+        } else {
+            rv.setViewVisibility(R.id.item_right_container, android.view.View.VISIBLE)
+            if (item.airDate.isNullOrEmpty()) {
+                rv.setViewVisibility(R.id.item_air_date, android.view.View.GONE)
+            } else {
+                rv.setTextViewText(R.id.item_air_date, item.airDate)
+                rv.setViewVisibility(R.id.item_air_date, android.view.View.VISIBLE)
+            }
+            if (item.airTime.isNullOrEmpty()) {
+                rv.setViewVisibility(R.id.item_air_time, android.view.View.GONE)
+            } else {
+                rv.setTextViewText(R.id.item_air_time, item.airTime)
+                rv.setViewVisibility(R.id.item_air_time, android.view.View.VISIBLE)
+            }
         }
 
         // Handle Watch List (Up Next) Fields

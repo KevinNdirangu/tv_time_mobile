@@ -18,8 +18,8 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = const [
     DashboardScreen(),
     DiscoverScreen(),
-    LibraryScreen(),
     CalendarScreen(),
+    LibraryScreen(),
   ];
 
   @override
@@ -43,12 +43,12 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Discover',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.video_library_rounded),
-            label: 'Library',
-          ),
-          BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month_rounded),
             label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.video_library_rounded),
+            label: 'Library',
           ),
         ],
       ),

@@ -26,10 +26,19 @@ class DashboardScreen extends ConsumerWidget {
               totalRuntime += item.runtime;
             }
 
-            final timeWatched = totalRuntime > 0 
-                ? '${(totalRuntime / 60).toStringAsFixed(1)}h'
-                : '0h';
-
+            String timeWatched = '0h';
+            if (totalRuntime > 0) {
+              final mo = totalRuntime ~/ 43200;
+              var rem = totalRuntime % 43200;
+              final d = rem ~/ 1440;
+              rem %= 1440;
+              final h = rem ~/ 60;
+              
+              timeWatched = '';
+              if (mo > 0) timeWatched += '${mo}mo ';
+              if (d > 0) timeWatched += '${d}d ';
+              timeWatched += '${h}h';
+            }
             // Carousels
             final watching = libraryData.where((s) => s.show.type == 'tv' && s.watchedEpisodes > 0 && s.watchedEpisodes < s.show.totalEpisodes && s.show.isStopped == 0).toList();
             watching.sort((a, b) => b.show.id.compareTo(a.show.id));
@@ -293,12 +302,19 @@ class DashboardScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              color: color,
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: color,
+                  height: 1.2,
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 4),

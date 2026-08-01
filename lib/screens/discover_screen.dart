@@ -196,15 +196,98 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                                   type: type,
                                 )));
                               },
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(8),
-                                child: posterPath != null
-                                    ? Image.network(
-                                        'https://image.tmdb.org/t/p/w200$posterPath', 
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(title),
-                                      )
-                                    : _buildPlaceholder(title),
+                              child: Stack(
+                                children: [
+                                  // Background Poster
+                                  Positioned.fill(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: posterPath != null
+                                          ? Image.network(
+                                              'https://image.tmdb.org/t/p/w200$posterPath', 
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => _buildPlaceholder(title),
+                                            )
+                                          : _buildPlaceholder(title),
+                                    ),
+                                  ),
+                                  
+                                  // Top Left: Tag (MOVIE / TV)
+                                  Positioned(
+                                    top: 6,
+                                    left: 6,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: type == 'movie' ? AppTheme.primary : Colors.white,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        type.toUpperCase(),
+                                        style: const TextStyle(
+                                          color: Colors.black,
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Top Right: + Add Button
+                                  Positioned(
+                                    top: 6,
+                                    right: 6,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        // Quick add action (for now just open details modal)
+                                        Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailsScreen(
+                                          tmdbId: item['id'],
+                                          type: type,
+                                        )));
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withValues(alpha: 0.6),
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white24),
+                                        ),
+                                        child: const Icon(Icons.add, size: 16, color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+
+                                  // Bottom: Title Overlay
+                                  Positioned(
+                                    bottom: 0,
+                                    left: 0,
+                                    right: 0,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+                                        gradient: LinearGradient(
+                                          begin: Alignment.bottomCenter,
+                                          end: Alignment.topCenter,
+                                          colors: [
+                                            Colors.black.withValues(alpha: 0.9),
+                                            Colors.transparent,
+                                          ],
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+                                      child: Text(
+                                        title,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             );
                           },

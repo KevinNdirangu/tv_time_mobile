@@ -1,15 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import 'show_details_screen.dart';
 
-class CalendarScreen extends ConsumerWidget {
+class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
+}
+
+class _CalendarScreenState extends ConsumerState<CalendarScreen> {
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey> _dateKeys = {};
+
+  void _scrollToToday() {
+    final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    
+    // Find the exact today key, or the first key after today
+    String? targetKey;
+    if (_dateKeys.containsKey(todayStr)) {
+      targetKey = todayStr;
+    } else {
+      final sortedKeys = _dateKeys.keys.toList()..sort();
+      for (var k in sortedKeys) {
+        if (k.compareTo(todayStr) >= 0) {
+          targetKey = k;
+          break;
+        }
+      }
+    }
+
+    if (targetKey != null && _dateKeys.containsKey(targetKey)) {
+      final context = _dateKeys[targetKey]!.currentContext;
+      if (context != null) {
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+          alignment: 0.1, // Slight offset from top
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final calendarAsync = ref.watch(calendarProvider);
 
     return Scaffold(
@@ -29,36 +74,33 @@ class CalendarScreen extends ConsumerWidget {
           }
 
           final sortedDates = grouped.keys.toList()..sort();
+          final today = DateTime.now();
+          final todayStr = DateFormat('yyyy-MM-dd').format(today);
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: sortedDates.length,
-            itemBuilder: (context, index) {
-              final dateString = sortedDates[index];
-              final epsForDate = grouped[dateString]!;
-              final date = DateTime.parse(dateString);
-              
-              final isToday = date.difference(DateTime.now()).inDays == 0 && date.day == DateTime.now().day;
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      isToday ? 'Today' : DateFormat('EEEE, MMMM d').format(date),
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: isToday ? AppTheme.primary : AppTheme.textMain,
-                      ),
-                    ),
-                  ),
-                  ...epsForDate.map((ep) => _buildEpisodeCard(context, ep)),
-                  const SizedBox(height: 16),
+          return Stack(
+            children: [
+              CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  for (var dateStr in sortedDates)
+                    ..._buildDateSection(dateStr, grouped[dateStr]!, todayStr),
                 ],
-              );
-            },
+              ),
+              // Floating TODAY Button
+              Positioned(
+                bottom: 24,
+                right: 24,
+                child: FloatingActionButton.extended(
+                  onPressed: _scrollToToday,
+                  backgroundColor: AppTheme.primary,
+                  icon: const Icon(Icons.calendar_today, color: Colors.black),
+                  label: const Text(
+                    'TODAY',
+                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
           );
         },
         loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
@@ -67,7 +109,62 @@ class CalendarScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEpisodeCard(BuildContext context, CalendarEpisode ep) {
+  List<Widget> _buildDateSection(String dateStr, List<CalendarEpisode> eps, String todayStr) {
+    final date = DateTime.parse(dateStr);
+    final isToday = dateStr == todayStr;
+    
+    // Register GlobalKey for scrolling
+    if (!_dateKeys.containsKey(dateStr)) {
+      _dateKeys[dateStr] = GlobalKey();
+    }
+
+    return [
+      SliverToBoxAdapter(
+        key: _dateKeys[dateStr],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                isToday ? 'TODAY' : DateFormat('EEEE, MMMM d').format(date),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isToday ? AppTheme.primary : AppTheme.textMain,
+                ),
+              ),
+              const Divider(color: Colors.white10),
+            ],
+          ),
+        ),
+      ),
+      SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            childAspectRatio: 0.65,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+          ),
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => _buildEpisodeCard(context, eps[index], date, isToday),
+            childCount: eps.length,
+          ),
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildEpisodeCard(BuildContext context, CalendarEpisode ep, DateTime epDate, bool isToday) {
+    final diff = epDate.difference(DateTime.now()).inDays;
+    // Difference is based on midnight-to-midnight roughly
+    final diffText = isToday ? 'TODAY' : (diff < 0 ? '${diff.abs()} D AGO' : '$diff DAYS');
+    
+    final titleText = ep.showTitle;
+    final subtitleText = 'S${ep.seasonNumber}E${ep.episodeNumber}';
+
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailsScreen(
@@ -75,65 +172,127 @@ class CalendarScreen extends ConsumerWidget {
           type: 'tv',
         )));
       },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceLight,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+      child: Stack(
+        children: [
+          // Poster
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
               child: ep.posterUrl != null
                   ? Image.network(
                       ep.posterUrl!,
-                      width: 80,
-                      height: 120,
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) => _placeholderImage(),
                     )
                   : _placeholderImage(),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      ep.showTitle,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.textMain),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'S${ep.seasonNumber} E${ep.episodeNumber}',
-                      style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      ep.title,
-                      style: const TextStyle(color: AppTheme.textMuted, fontSize: 13),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+          ),
+
+          // Top Left Tag (DAYS AGO / DAYS)
+          Positioned(
+            top: 6,
+            left: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.85),
+                border: Border.all(color: AppTheme.primary),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                diffText,
+                style: const TextStyle(
+                  color: AppTheme.primary,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+
+          // Top Right Tag (GCal)
+          Positioned(
+            top: 6,
+            right: 6,
+            child: GestureDetector(
+              onTap: () async {
+                final d = DateTime.parse(ep.airDate);
+                final startStr = DateFormat('yyyyMMdd').format(d);
+                final nextD = d.add(const Duration(days: 1));
+                final endStr = DateFormat('yyyyMMdd').format(nextD);
+                
+                final encTitle = Uri.encodeComponent('$titleText $subtitleText');
+                final encDetails = Uri.encodeComponent(ep.title);
+                
+                final url = Uri.parse('https://www.google.com/calendar/render?action=TEMPLATE&text=$encTitle&dates=$startStr/$endStr&details=$encDetails');
+                
+                if (await canLaunchUrl(url)) {
+                  await launchUrl(url, mode: LaunchMode.externalApplication);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Icon(Icons.event, size: 14, color: Colors.black),
+              ),
+            ),
+          ),
+
+          // Bottom Title Overlay
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+                gradient: LinearGradient(
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.9),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    titleText,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    subtitleText,
+                    style: const TextStyle(
+                      color: AppTheme.primary,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _placeholderImage() {
     return Container(
-      width: 80,
-      height: 120,
-      color: AppTheme.surface,
+      color: AppTheme.surfaceLight,
       child: const Center(child: Icon(Icons.tv, color: AppTheme.textMuted)),
     );
   }

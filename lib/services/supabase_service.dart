@@ -563,9 +563,17 @@ class SupabaseActions {
             
             for (var row in showsMap[showName]!) {
               if (row.length <= episodeIdx) continue;
-              final sNum = int.tryParse(row[seasonIdx].toString());
-              final eNum = int.tryParse(row[episodeIdx].toString());
-              if (sNum == null || eNum == null) continue;
+              int? sNum = int.tryParse(row[seasonIdx].toString());
+              int? eNum = int.tryParse(row[episodeIdx].toString());
+              
+              if (sNum == null || eNum == null) {
+                if (type == 'movie') {
+                  sNum = 1;
+                  eNum = 1;
+                } else {
+                  continue;
+                }
+              }
               
               final epId = epsMap['$sNum-$eNum'];
               if (epId != null) {

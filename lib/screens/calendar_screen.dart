@@ -64,138 +64,184 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     return Scaffold(
       drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
-      appBar: AppBar(
-        title: const Text('Calendar', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          Builder(
-            builder: (context) => Badge(
-              isLabelVisible: notifications.isNotEmpty,
-              alignment: Alignment.topRight,
-              child: IconButton(
-                icon: Icon(Icons.notifications_rounded, color: AppTheme.primary),
-                onPressed: () => Scaffold.of(context).openEndDrawer(),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: calendarAsync.when(
-        data: (episodes) {
-          if (episodes.isEmpty) {
-            return const Center(child: Text('No upcoming episodes.', style: TextStyle(color: AppTheme.textMuted)));
-          }
-
-          // Group by date
-          final Map<String, List<CalendarEpisode>> grouped = {};
-          for (var ep in episodes) {
-            grouped.putIfAbsent(ep.airDate, () => []).add(ep);
-          }
-
-          final sortedDates = grouped.keys.toList()..sort();
-          final today = DateTime.now();
-          final todayStr = DateFormat('yyyy-MM-dd').format(today);
-
-          final pastDates = sortedDates.where((d) => d.compareTo(todayStr) < 0).toList();
-          final futureDates = sortedDates.where((d) => d.compareTo(todayStr) >= 0).toList();
-
-          return Stack(
-            children: [
-              RefreshIndicator(
-                onRefresh: () async {
-                  ref.invalidate(calendarProvider);
-                  await ref.read(calendarProvider.future);
-                },
-                child: CustomScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  controller: _scrollController,
-                slivers: [
-                  if (pastDates.isNotEmpty)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Theme(
-                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                          child: ExpansionTile(
-                            collapsedBackgroundColor: AppTheme.surfaceLight,
-                            backgroundColor: AppTheme.surfaceLight,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: const BorderSide(color: Colors.white10),
-                            ),
-                            collapsedShape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: const BorderSide(color: Colors.white10),
-                            ),
-                            title: Text(
-                              'Show Past 30 Days (${pastDates.fold<int>(0, (sum, d) => sum + grouped[d]!.length)} Items)',
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMuted),
-                            ),
-                            children: pastDates.map((dateStr) {
-                              final eps = grouped[dateStr]!;
-                              final date = DateTime.parse(dateStr);
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                                    child: Text(
-                                      DateFormat('EEEE, MMMM d').format(date),
-                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textMain),
-                                    ),
-                                  ),
-                                  GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      childAspectRatio: 0.65,
-                                      crossAxisSpacing: 10,
-                                      mainAxisSpacing: 10,
-                                    ),
-                                    itemCount: eps.length,
-                                    itemBuilder: (context, index) => _buildEpisodeCard(context, eps[index], date, false),
-                                  ),
-                                ],
-                              );
-                            }).toList(),
-                          ),
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Premium Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu_rounded, color: AppTheme.textMain, size: 28),
+                      padding: EdgeInsets.zero,
+                      alignment: Alignment.centerLeft,
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Calendar',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.textMain,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  Builder(
+                    builder: (context) => Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceLight,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      ),
+                      child: Badge(
+                        isLabelVisible: notifications.isNotEmpty,
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          icon: Icon(Icons.notifications_rounded, color: AppTheme.primary, size: 22),
+                          onPressed: () => Scaffold.of(context).openEndDrawer(),
                         ),
                       ),
                     ),
-                  
-                  if (futureDates.isEmpty)
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Center(child: Text('All caught up! No upcoming media scheduled.', style: TextStyle(color: AppTheme.textMuted))),
-                      ),
-                    ),
-                  
-                  for (var dateStr in futureDates)
-                    ..._buildDateSection(dateStr, grouped[dateStr]!, todayStr),
+                  ),
                 ],
               ),
+            ),
+            
+            // Calendar Body
+            Expanded(
+              child: calendarAsync.when(
+                data: (episodes) {
+                  if (episodes.isEmpty) {
+                    return const Center(child: Text('No upcoming episodes.', style: TextStyle(color: AppTheme.textMuted)));
+                  }
+
+                  // Group by date
+                  final Map<String, List<CalendarEpisode>> grouped = {};
+                  for (var ep in episodes) {
+                    grouped.putIfAbsent(ep.airDate, () => []).add(ep);
+                  }
+
+                  final sortedDates = grouped.keys.toList()..sort();
+                  final today = DateTime.now();
+                  final todayStr = DateFormat('yyyy-MM-dd').format(today);
+
+                  final pastDates = sortedDates.where((d) => d.compareTo(todayStr) < 0).toList();
+                  final futureDates = sortedDates.where((d) => d.compareTo(todayStr) >= 0).toList();
+
+                  return Stack(
+                    children: [
+                      RefreshIndicator(
+                        onRefresh: () async {
+                          ref.invalidate(calendarProvider);
+                          await ref.read(calendarProvider.future);
+                        },
+                        child: CustomScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          controller: _scrollController,
+                          slivers: [
+                            if (pastDates.isNotEmpty)
+                              SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                  child: Theme(
+                                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.surfaceLight,
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                        boxShadow: [
+                                          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                                        ],
+                                      ),
+                                      child: ExpansionTile(
+                                        iconColor: AppTheme.textMuted,
+                                        collapsedIconColor: AppTheme.textMuted,
+                                        title: Text(
+                                          'Show Past 30 Days (${pastDates.fold<int>(0, (sum, d) => sum + grouped[d]!.length)} Items)',
+                                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMuted, fontSize: 15),
+                                        ),
+                                        children: pastDates.map((dateStr) {
+                                          final eps = grouped[dateStr]!;
+                                          final date = DateTime.parse(dateStr);
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Padding(
+                                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                                child: Text(
+                                                  DateFormat('EEEE, MMMM d').format(date),
+                                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textMain),
+                                                ),
+                                              ),
+                                              GridView.builder(
+                                                shrinkWrap: true,
+                                                physics: const NeverScrollableScrollPhysics(),
+                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                                  crossAxisCount: 3,
+                                                  childAspectRatio: 0.65,
+                                                  crossAxisSpacing: 12,
+                                                  mainAxisSpacing: 16,
+                                                ),
+                                                itemCount: eps.length,
+                                                itemBuilder: (context, index) => _buildEpisodeCard(context, eps[index], date, false),
+                                              ),
+                                            ],
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            
+                            if (futureDates.isEmpty)
+                              const SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: EdgeInsets.all(32.0),
+                                  child: Center(child: Text('All caught up! No upcoming media scheduled.', style: TextStyle(color: AppTheme.textMuted))),
+                                ),
+                              ),
+                            
+                            for (var dateStr in futureDates)
+                              ..._buildDateSection(dateStr, grouped[dateStr]!, todayStr),
+                              
+                            // Bottom padding for scroll
+                            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+                          ],
+                        ),
+                      ),
+                      
+                      // Floating TODAY Button
+                      Positioned(
+                        bottom: 24,
+                        right: 24,
+                        child: FloatingActionButton.extended(
+                          onPressed: _scrollToToday,
+                          backgroundColor: AppTheme.primary,
+                          icon: const Icon(Icons.calendar_today_rounded, color: Colors.black),
+                          label: const Text(
+                            'TODAY',
+                            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+                error: (err, _) => Center(child: Text('Error loading calendar: $err')),
               ),
-              // Floating TODAY Button
-              Positioned(
-                bottom: 24,
-                right: 24,
-                child: FloatingActionButton.extended(
-                  onPressed: _scrollToToday,
-                  backgroundColor: AppTheme.primary,
-                  icon: const Icon(Icons.calendar_today, color: Colors.black),
-                  label: const Text(
-                    'TODAY',
-                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-        loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-        error: (err, _) => Center(child: Text('Error loading calendar: $err')),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -218,26 +264,28 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isToday ? 'TODAY' : DateFormat('EEEE, MMMM d').format(date),
+                isToday ? 'TODAY' : DateFormat('EEEE, MMMM d').format(date).toUpperCase(),
                 style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
                   color: isToday ? AppTheme.primary : AppTheme.textMain,
+                  letterSpacing: 0.5,
                 ),
               ),
-              const Divider(color: Colors.white10),
+              const SizedBox(height: 8),
+              Divider(color: Colors.white.withValues(alpha: 0.1), height: 1),
             ],
           ),
         ),
       ),
       SliverPadding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         sliver: SliverGrid(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 3,
             childAspectRatio: 0.65,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 16,
           ),
           delegate: SliverChildBuilderDelegate(
             (context, index) => _buildEpisodeCard(context, eps[index], date, isToday),
@@ -263,120 +311,139 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           type: 'tv',
         )));
       },
-      child: Stack(
-        children: [
-          // Poster
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: ep.posterUrl != null
-                  ? Image.network(
-                      ep.posterUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholderImage(),
-                    )
-                  : _placeholderImage(),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-
-          // Top Left Tag (DAYS AGO / DAYS)
-          Positioned(
-            top: 6,
-            left: 6,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.85),
-                border: Border.all(color: AppTheme.primary),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: Text(
-                diffText,
-                style: TextStyle(
-                  color: AppTheme.primary,
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Poster
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: ep.posterUrl != null
+                    ? Image.network(
+                        ep.posterUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _placeholderImage(),
+                      )
+                    : _placeholderImage(),
               ),
             ),
-          ),
 
-          // Top Right Tag (GCal)
-          Positioned(
-            top: 6,
-            right: 6,
-            child: GestureDetector(
-              onTap: () async {
-                final d = DateTime.parse(ep.airDate);
-                final startStr = DateFormat('yyyyMMdd').format(d);
-                final nextD = d.add(const Duration(days: 1));
-                final endStr = DateFormat('yyyyMMdd').format(nextD);
-                
-                final encTitle = Uri.encodeComponent('$titleText $subtitleText');
-                final encDetails = Uri.encodeComponent(ep.title);
-                
-                final url = Uri.parse('https://www.google.com/calendar/render?action=TEMPLATE&text=$encTitle&dates=$startStr/$endStr&details=$encDetails');
-                
-                if (await canLaunchUrl(url)) {
-                  await launchUrl(url, mode: LaunchMode.externalApplication);
-                }
-              },
+            // Top Left Tag (DAYS AGO / DAYS)
+            Positioned(
+              top: 8,
+              left: 8,
               child: Container(
-                padding: const EdgeInsets.all(4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(4),
+                  color: Colors.black.withValues(alpha: 0.85),
+                  border: Border.all(color: AppTheme.primary, width: 1.5),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Icon(Icons.event, size: 14, color: Colors.black),
+                child: Text(
+                  diffText,
+                  style: TextStyle(
+                    color: AppTheme.primary,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5,
+                  ),
+                ),
               ),
             ),
-          ),
 
-          // Bottom Title Overlay
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-                gradient: LinearGradient(
-                  begin: Alignment.bottomCenter,
-                  end: Alignment.topCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.9),
-                    Colors.transparent,
+            // Top Right Tag (GCal)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () async {
+                  final d = DateTime.parse(ep.airDate);
+                  final startStr = DateFormat('yyyyMMdd').format(d);
+                  final nextD = d.add(const Duration(days: 1));
+                  final endStr = DateFormat('yyyyMMdd').format(nextD);
+                  
+                  final encTitle = Uri.encodeComponent('$titleText $subtitleText');
+                  final encDetails = Uri.encodeComponent(ep.title);
+                  
+                  final url = Uri.parse('https://www.google.com/calendar/render?action=TEMPLATE&text=$encTitle&dates=$startStr/$endStr&details=$encDetails');
+                  
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4),
+                    ],
+                  ),
+                  child: const Icon(Icons.event_rounded, size: 14, color: Colors.black),
+                ),
+              ),
+            ),
+
+            // Bottom Title Overlay
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.95),
+                      Colors.black.withValues(alpha: 0.7),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      titleText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitleText,
+                      style: TextStyle(
+                        color: AppTheme.primary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ],
                 ),
               ),
-              padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    titleText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  Text(
-                    subtitleText,
-                    style: TextStyle(
-                      color: AppTheme.primary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -384,7 +451,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget _placeholderImage() {
     return Container(
       color: AppTheme.surfaceLight,
-      child: const Center(child: Icon(Icons.tv, color: AppTheme.textMuted)),
+      child: const Center(child: Icon(Icons.tv_rounded, color: AppTheme.textMuted, size: 32)),
     );
   }
 }

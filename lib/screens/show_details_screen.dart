@@ -446,7 +446,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
           if (ad.compareTo(now) <= 0) {
             hasAired = true;
           } else {
-            airDateText = 'Airs: ${ep['air_date']}';
+            airDateText = 'Will air on ${ep['air_date']}';
           }
         }
       }

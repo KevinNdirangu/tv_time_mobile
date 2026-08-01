@@ -17,7 +17,7 @@ class LibraryScreen extends ConsumerStatefulWidget {
 
 class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _topFilter = 'all'; // all, tv, movie
-  String _tvFilter = 'watching'; // watching, uptodate, finished, stopped
+  String _tvFilter = 'watching'; // watching, uptodate, finished, stopped, notstarted
   String _movieFilter = 'watchlist'; // watchlist, seen
   String _sort = 'lastWatchedDesc';
   String _genre = 'all';
@@ -31,157 +31,231 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     return Scaffold(
       drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
-      appBar: AppBar(
-        title: const Text('Library', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          Builder(
-            builder: (context) => Badge(
-              isLabelVisible: notifications.isNotEmpty,
-              alignment: Alignment.topRight,
-              child: IconButton(
-                icon: Icon(Icons.notifications_rounded, color: AppTheme.primary),
-                onPressed: () => Scaffold.of(context).openEndDrawer(),
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Premium Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu_rounded, color: AppTheme.textMain, size: 28),
+                      padding: EdgeInsets.zero,
+                      alignment: Alignment.centerLeft,
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Library',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.textMain,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                  ),
+                  Builder(
+                    builder: (context) => Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceLight,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      ),
+                      child: Badge(
+                        isLabelVisible: notifications.isNotEmpty,
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          icon: Icon(Icons.notifications_rounded, color: AppTheme.primary, size: 22),
+                          onPressed: () => Scaffold.of(context).openEndDrawer(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
-      ),
-      body: libraryAsync.when(
-        data: (library) {
-          final filtered = _filterAndSort(library);
-          final genres = _extractGenres(library);
+            
+            libraryAsync.when(
+              data: (library) {
+                final filtered = _filterAndSort(library);
+                final genres = _extractGenres(library);
 
-          return Column(
-            children: [
-              // Search Bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: TextField(
-                  onChanged: (val) => setState(() => _search = val.toLowerCase()),
-                  style: const TextStyle(color: AppTheme.textMain),
-                  decoration: InputDecoration(
-                    hintText: 'Search library...',
-                    hintStyle: const TextStyle(color: AppTheme.textMuted),
-                    prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
-                    filled: true,
-                    fillColor: AppTheme.surfaceLight,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  ),
-                ),
-              ),
-
-              // Top Filters & Sort
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Row(
-                  children: [
-                    _buildChip('All', 'all', _topFilter, (v) => setState(() => _topFilter = v)),
-                    const SizedBox(width: 8),
-                    _buildChip('TV Shows', 'tv', _topFilter, (v) => setState(() => _topFilter = v)),
-                    const SizedBox(width: 8),
-                    _buildChip('Movies', 'movie', _topFilter, (v) => setState(() => _topFilter = v)),
-                    const SizedBox(width: 16),
-                    _buildDropdown(
-                      value: _sort,
-                      items: const [
-                        DropdownMenuItem(value: 'lastWatchedDesc', child: Text('Last Watched')),
-                        DropdownMenuItem(value: 'titleAsc', child: Text('Title (A-Z)')),
-                        DropdownMenuItem(value: 'addedDesc', child: Text('Recently Added')),
-                        DropdownMenuItem(value: 'episodesDesc', child: Text('Most Watched')),
-                        DropdownMenuItem(value: 'notWatchedAsc', child: Text('Not Watched First')),
-                      ],
-                      onChanged: (v) => setState(() => _sort = v!),
-                    ),
-                    const SizedBox(width: 8),
-                    _buildDropdown(
-                      value: _genre,
-                      items: [
-                        const DropdownMenuItem(value: 'all', child: Text('All Genres')),
-                        ...genres.map((g) => DropdownMenuItem(value: g, child: Text(g))),
-                      ],
-                      onChanged: (v) => setState(() => _genre = v!),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Secondary Filters
-              if (_topFilter == 'tv')
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Row(
+                return Expanded(
+                  child: Column(
                     children: [
-                      _buildChip('Watching', 'watching', _tvFilter, (v) => setState(() => _tvFilter = v)),
-                      const SizedBox(width: 8),
-                      _buildChip('Up to Date', 'uptodate', _tvFilter, (v) => setState(() => _tvFilter = v)),
-                      const SizedBox(width: 8),
-                      _buildChip('Finished', 'finished', _tvFilter, (v) => setState(() => _tvFilter = v)),
-                      const SizedBox(width: 8),
-                      _buildChip('Stopped', 'stopped', _tvFilter, (v) => setState(() => _tvFilter = v)),
-                    ],
-                  ),
-                ),
-              if (_topFilter == 'movie')
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  child: Row(
-                    children: [
-                      _buildChip('Watchlist', 'watchlist', _movieFilter, (v) => setState(() => _movieFilter = v)),
-                      const SizedBox(width: 8),
-                      _buildChip('Seen', 'seen', _movieFilter, (v) => setState(() => _movieFilter = v)),
-                    ],
-                  ),
-                ),
-
-              // Grid
-              Expanded(
-                child: filtered.isEmpty
-                    ? const Center(child: Text('No items match your filters.', style: TextStyle(color: AppTheme.textMuted)))
-                    : GridView.builder(
-                        padding: const EdgeInsets.all(16),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 0.65,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
+                      // Search and Filters Section
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                        decoration: BoxDecoration(
+                          border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
                         ),
-                        itemCount: filtered.length,
-                        itemBuilder: (context, index) {
-                          return _buildLibraryCard(filtered[index]);
-                        },
+                        child: Column(
+                          children: [
+                            // Search Bar
+                            Container(
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceLight,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                boxShadow: [
+                                  BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                                ],
+                              ),
+                              child: TextField(
+                                onChanged: (val) => setState(() => _search = val.toLowerCase()),
+                                style: const TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.w500),
+                                decoration: InputDecoration(
+                                  hintText: 'Search your library...',
+                                  hintStyle: TextStyle(color: AppTheme.textMuted.withValues(alpha: 0.7)),
+                                  prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 16),
+
+                            // Top Filters & Sort
+                            SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: Row(
+                                children: [
+                                  _buildChip('All', 'all', _topFilter, (v) => setState(() => _topFilter = v)),
+                                  _buildChip('TV Shows', 'tv', _topFilter, (v) => setState(() => _topFilter = v)),
+                                  _buildChip('Movies', 'movie', _topFilter, (v) => setState(() => _topFilter = v)),
+                                  
+                                  const SizedBox(width: 8),
+                                  
+                                  _buildDropdown(
+                                    value: _sort,
+                                    items: const [
+                                      DropdownMenuItem(value: 'lastWatchedDesc', child: Text('Last Watched')),
+                                      DropdownMenuItem(value: 'titleAsc', child: Text('Title (A-Z)')),
+                                      DropdownMenuItem(value: 'addedDesc', child: Text('Recently Added')),
+                                      DropdownMenuItem(value: 'episodesDesc', child: Text('Most Watched')),
+                                      DropdownMenuItem(value: 'notWatchedAsc', child: Text('Not Watched First')),
+                                    ],
+                                    onChanged: (v) => setState(() => _sort = v!),
+                                  ),
+                                  
+                                  const SizedBox(width: 8),
+                                  
+                                  _buildDropdown(
+                                    value: _genre,
+                                    items: [
+                                      const DropdownMenuItem(value: 'all', child: Text('All Genres')),
+                                      ...genres.map((g) => DropdownMenuItem(value: g, child: Text(g))),
+                                    ],
+                                    onChanged: (v) => setState(() => _genre = v!),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Secondary Filters
+                            if (_topFilter == 'tv' || _topFilter == 'movie')
+                              Padding(
+                                padding: const EdgeInsets.only(top: 12.0),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  physics: const BouncingScrollPhysics(),
+                                  child: Row(
+                                    children: _topFilter == 'tv' 
+                                      ? [
+                                          _buildChip('Watching', 'watching', _tvFilter, (v) => setState(() => _tvFilter = v), true),
+                                          _buildChip('Up to Date', 'uptodate', _tvFilter, (v) => setState(() => _tvFilter = v), true),
+                                          _buildChip('Not Started', 'notstarted', _tvFilter, (v) => setState(() => _tvFilter = v), true),
+                                          _buildChip('Finished', 'finished', _tvFilter, (v) => setState(() => _tvFilter = v), true),
+                                          _buildChip('Stopped', 'stopped', _tvFilter, (v) => setState(() => _tvFilter = v), true),
+                                        ]
+                                      : [
+                                          _buildChip('Watchlist', 'watchlist', _movieFilter, (v) => setState(() => _movieFilter = v), true),
+                                          _buildChip('Seen', 'seen', _movieFilter, (v) => setState(() => _movieFilter = v), true),
+                                        ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-              ),
-            ],
-          );
-        },
-        loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
-        error: (err, stack) => Center(child: Text('Error: $err')),
+
+                      // Grid
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.video_library_rounded, size: 64, color: AppTheme.surfaceLight),
+                                    const SizedBox(height: 16),
+                                    const Text('No items match your filters.', style: TextStyle(color: AppTheme.textMuted, fontSize: 16)),
+                                  ],
+                                ),
+                              )
+                            : GridView.builder(
+                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                                physics: const BouncingScrollPhysics(),
+                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 3,
+                                  childAspectRatio: 0.62,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 16,
+                                ),
+                                itemCount: filtered.length,
+                                itemBuilder: (context, index) {
+                                  return _buildLibraryCard(filtered[index]);
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              loading: () => Expanded(child: Center(child: CircularProgressIndicator(color: AppTheme.primary))),
+              error: (err, stack) => Expanded(child: Center(child: Text('Error: $err'))),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildChip(String label, String value, String groupValue, Function(String) onSelected) {
+  Widget _buildChip(String label, String value, String groupValue, Function(String) onSelected, [bool isSecondary = false]) {
     final isSelected = value == groupValue;
     return GestureDetector(
       onTap: () => onSelected(value),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primary : AppTheme.surfaceLight,
+          color: isSelected 
+              ? (isSecondary ? AppTheme.surfaceLight : AppTheme.primary)
+              : (isSecondary ? Colors.transparent : AppTheme.surfaceLight),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected && isSecondary 
+                ? AppTheme.primary 
+                : (isSecondary ? Colors.transparent : Colors.white.withValues(alpha: 0.05)),
+          ),
+          boxShadow: isSelected && !isSecondary ? [
+            BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))
+          ] : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.black : AppTheme.textMain,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            color: isSelected 
+                ? (isSecondary ? AppTheme.primary : Colors.black)
+                : AppTheme.textMuted,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+            fontSize: 12,
           ),
         ),
       ),
@@ -189,23 +263,23 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }
 
   Widget _buildDropdown({required String value, required List<DropdownMenuItem<String>> items, required Function(String?) onChanged}) {
-    // Ensure the value exists in items to prevent assertions
     final hasValue = items.any((item) => item.value == value);
     final safeValue = hasValue ? value : items.first.value;
 
     return Container(
-      height: 35,
+      height: 36,
       padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: AppTheme.surfaceLight,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: safeValue,
           dropdownColor: AppTheme.surfaceLight,
-          style: const TextStyle(color: AppTheme.textMain, fontSize: 13),
-          icon: const Icon(Icons.arrow_drop_down, color: AppTheme.textMuted),
+          style: const TextStyle(color: AppTheme.textMain, fontSize: 13, fontWeight: FontWeight.w600),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textMuted, size: 18),
           items: items,
           onChanged: onChanged,
         ),
@@ -221,32 +295,32 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     String? badgeText;
     Color? badgeColor;
 
-    if (show.isStopped == 1) {
-      badgeText = 'Stopped';
-      badgeColor = Colors.red;
-    } else if (isMovie) {
+    if (isMovie) {
       if (libItem.watchedEpisodes == 0) {
         badgeText = 'Watchlist';
-        badgeColor = Colors.amber;
+        badgeColor = const Color(0xFFff9f0a); // Yellow/Orange
       } else {
         badgeText = 'Seen';
-        badgeColor = Colors.green;
+        badgeColor = const Color(0xFF34c759); // Green
       }
     } else {
-      if (libItem.watchedEpisodes == 0) {
+      if (show.isStopped == 1) {
+        badgeText = 'Stopped';
+        badgeColor = const Color(0xFFff3b30); // Red
+      } else if (libItem.watchedEpisodes == 0) {
         badgeText = 'Not Started';
-        badgeColor = Colors.grey;
+        badgeColor = const Color(0xFF8e8e93); // Grey
       } else if (libItem.watchedEpisodes >= libItem.airedEpisodes && libItem.airedEpisodes > 0) {
         if (show.status == 'Ended' || show.status == 'Canceled') {
           badgeText = 'Finished';
-          badgeColor = Colors.green;
+          badgeColor = const Color(0xFF34c759); // Green
         } else {
           badgeText = 'Up to Date';
-          badgeColor = Colors.blue;
+          badgeColor = const Color(0xFF0a84ff); // Blue
         }
       } else {
         badgeText = 'Watching';
-        badgeColor = Colors.amber;
+        badgeColor = const Color(0xFFFFD600); // Yellow
       }
     }
 
@@ -257,115 +331,200 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           type: show.type,
         )));
       },
-      child: Stack(
-        children: [
-          // Poster
-          Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: show.posterUrl != null
-                  ? Image.network(
-                      show.posterUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                    )
-                  : _buildPlaceholder(),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: badgeColor != null ? badgeColor.withValues(alpha: 0.15) : Colors.black.withValues(alpha: 0.4),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          
-          // Status Badge (Top Left)
-          if (badgeText != null)
-            Positioned(
-              top: 0,
-              left: 0,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: badgeColor,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(8),
-                    bottomRight: Radius.circular(8),
-                  ),
-                  boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4)],
-                ),
-                child: Text(
-                  badgeText.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
+          ],
+        ),
+        child: Stack(
+          children: [
+            // Poster
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: show.posterUrl != null
+                    ? Image.network(
+                        show.posterUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => _buildPlaceholder(show.title),
+                      )
+                    : _buildPlaceholder(show.title),
+              ),
+            ),
+            
+            // Subtle Border matching status color
+            if (badgeColor != null)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: badgeColor.withValues(alpha: 0.3), width: 1.5),
                   ),
                 ),
               ),
-            ),
-
-          // Unwatched Badge (Top Right)
-          if (!isMovie && unwatched > 0 && show.isStopped == 0)
-            Positioned(
-              top: 4,
-              right: 4,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.red,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4)],
+            
+            // Top Right: Status Badge
+            if (badgeText != null)
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: badgeColor,
+                    borderRadius: BorderRadius.circular(6),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4),
+                    ],
+                  ),
+                  child: Text(
+                    badgeText.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 8.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
                 ),
-                child: Text(
-                  '+$unwatched',
-                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+
+            // Top Left: Unwatched Badge
+            if (!isMovie && unwatched > 0 && show.isStopped == 0)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 4)],
+                  ),
+                  child: Text(
+                    '+$unwatched',
+                    style: const TextStyle(color: Colors.black, fontSize: 10, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+
+            // Bottom: Title & Progress Overlay
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomCenter,
+                    end: Alignment.topCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.95),
+                      Colors.black.withValues(alpha: 0.7),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+                padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      show.title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        height: 1.1,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (!isMovie) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Container(
+                              height: 3,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(1.5),
+                              ),
+                              child: FractionallySizedBox(
+                                alignment: Alignment.centerLeft,
+                                widthFactor: (libItem.airedEpisodes > 0) ? (libItem.watchedEpisodes / libItem.airedEpisodes).clamp(0.0, 1.0) : 0,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: badgeColor ?? AppTheme.primary,
+                                    borderRadius: BorderRadius.circular(1.5),
+                                    boxShadow: [
+                                      if (badgeColor != null)
+                                        BoxShadow(color: badgeColor.withValues(alpha: 0.5), blurRadius: 4)
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${libItem.watchedEpisodes}/${libItem.show.totalEpisodes}',
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: badgeColor ?? AppTheme.primary,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
             
-          // Progress Bar
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              height: 4,
-              decoration: const BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(8)),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: (libItem.airedEpisodes > 0) ? (libItem.watchedEpisodes / libItem.airedEpisodes).clamp(0.0, 1.0) : 0,
+            // Stopped overlay
+            if (show.isStopped == 1)
+              Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
-                    color: (libItem.watchedEpisodes >= libItem.airedEpisodes && libItem.airedEpisodes > 0) ? AppTheme.primary : Colors.white,
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
+                    color: Colors.black.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              ),
-            ),
-          ),
-          
-          // Stopped overlay
-          if (show.isStopped == 1)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Center(
-                  child: Icon(Icons.block, color: Colors.white54, size: 30),
-                ),
-              ),
-            )
-        ],
+              )
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildPlaceholder() {
+  Widget _buildPlaceholder(String title) {
     return Container(
       color: AppTheme.surfaceLight,
-      child: const Center(
-        child: Icon(Icons.movie, color: AppTheme.textMuted, size: 40),
+      padding: const EdgeInsets.all(8.0),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.video_library_rounded, color: Colors.white.withValues(alpha: 0.1), size: 32),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -401,11 +560,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       if (_tvFilter == 'watching') {
         filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes < l.airedEpisodes && l.watchedEpisodes > 0).toList();
       } else if (_tvFilter == 'uptodate') {
-        filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes >= l.airedEpisodes && l.show.status != 'Ended').toList();
+        filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes >= l.airedEpisodes && l.show.status != 'Ended' && l.show.status != 'Canceled').toList();
       } else if (_tvFilter == 'finished') {
-        filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes >= l.airedEpisodes && l.show.status == 'Ended').toList();
+        filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes >= l.airedEpisodes && (l.show.status == 'Ended' || l.show.status == 'Canceled')).toList();
       } else if (_tvFilter == 'stopped') {
         filtered = filtered.where((l) => l.show.isStopped == 1).toList();
+      } else if (_tvFilter == 'notstarted') {
+        filtered = filtered.where((l) => l.watchedEpisodes == 0 && l.show.isStopped == 0).toList();
       }
     } else if (_topFilter == 'movie') {
       filtered = filtered.where((l) => l.show.type == 'movie').toList();
@@ -429,7 +590,6 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         case 'notWatchedAsc':
           final aUnseen = a.airedEpisodes - a.watchedEpisodes;
           final bUnseen = b.airedEpisodes - b.watchedEpisodes;
-          // Put ones with most unseen at top
           return bUnseen.compareTo(aUnseen);
         case 'lastWatchedDesc':
         default:

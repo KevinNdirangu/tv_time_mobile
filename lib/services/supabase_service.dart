@@ -219,6 +219,10 @@ final calendarProvider = FutureProvider<List<CalendarEpisode>>((ref) async {
     }
   }
   
+  try {
+    await WidgetService.updateCalendarWidget(calendar);
+  } catch (_) {}
+
   return calendar;
 });
 

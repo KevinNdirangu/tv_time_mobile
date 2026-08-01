@@ -275,6 +275,86 @@ class SupabaseActions {
     return SupabaseShowDetails(show: show, episodes: episodes, watchedEpisodeIds: watchedIds);
   }
 
+  static Future<void> syncActiveShows(List<Show> activeShows) async {
+    final client = Supabase.instance.client;
+    
+    final showsToSync = activeShows.where((s) => s.isStopped == 0 && s.type == 'tv').toList();
+    
+    for (var show in showsToSync) {
+      try {
+        final tmdbData = await TmdbService.getDetails(show.apiId, 'tv');
+        if (tmdbData == null) continue;
+        
+        final tmdbTotalEpisodes = tmdbData['number_of_episodes'] ?? show.totalEpisodes;
+        final numSeasons = tmdbData['number_of_seasons'] ?? 0;
+        final status = tmdbData['status'];
+
+        if (status == 'Returning Series' || tmdbTotalEpisodes > show.totalEpisodes) {
+           if (numSeasons > 0) {
+             final startSeason = numSeasons > 1 ? numSeasons - 1 : 1;
+             for (int s = startSeason; s <= numSeasons; s++) {
+               final sData = await TmdbService.getSeasonDetails(show.apiId, s);
+               if (sData != null && sData['episodes'] != null) {
+                 final eps = List<Map<String, dynamic>>.from(sData['episodes']);
+                 
+                 final existingEps = await client.from('episodes')
+                     .select('id, episode_number')
+                     .eq('show_id', show.id)
+                     .eq('season_number', s);
+                     
+                 final existingMap = { for (var e in existingEps as List) e['episode_number']: e['id'] };
+                 
+                 List<Map<String, dynamic>> toInsert = [];
+                 for (var ep in eps) {
+                   final epNum = ep['episode_number'];
+                   String finalAirDate = ep['air_date'] ?? '';
+                   
+                   if (existingMap.containsKey(epNum)) {
+                     if (finalAirDate.isNotEmpty) {
+                        await client.from('episodes')
+                            .update({'air_date': finalAirDate})
+                            .eq('id', existingMap[epNum]);
+                     }
+                   } else {
+                     toInsert.add({
+                       'show_id': show.id,
+                       'season_number': s,
+                       'episode_number': epNum,
+                       'title': ep['name'],
+                       'air_date': finalAirDate.isEmpty ? null : finalAirDate,
+                       'runtime': ep['runtime'] ?? 0,
+                     });
+                   }
+                 }
+                 
+                 if (toInsert.isNotEmpty) {
+                   final maxEpIdData = await client.from('episodes').select('id').order('id', ascending: false).limit(1).maybeSingle();
+                   int nextEpId = (maxEpIdData != null ? maxEpIdData['id'] as int : 0) + 1;
+                   
+                   for (int i = 0; i < toInsert.length; i++) {
+                     toInsert[i]['id'] = nextEpId++;
+                   }
+                   
+                   for (int i = 0; i < toInsert.length; i += 100) {
+                     final chunk = toInsert.sublist(i, i + 100 > toInsert.length ? toInsert.length : i + 100);
+                     await client.from('episodes').insert(chunk);
+                   }
+                 }
+               }
+             }
+           }
+           
+           await client.from('shows').update({
+             'total_episodes': tmdbTotalEpisodes,
+             'status': status,
+           }).eq('id', show.id);
+        }
+      } catch (e) {
+        print("Error syncing show ${show.title}: $e");
+      }
+    }
+  }
+
   static Future<void> toggleWatched(int episodeId, bool isWatched) async {
     final client = Supabase.instance.client;
     if (isWatched) {

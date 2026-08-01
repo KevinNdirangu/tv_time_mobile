@@ -138,6 +138,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     children: [
                       RefreshIndicator(
                         onRefresh: () async {
+                          final shows = await ref.read(showsProvider.future);
+                          await SupabaseActions.syncActiveShows(shows);
                           ref.invalidate(calendarProvider);
                           await ref.read(calendarProvider.future);
                         },

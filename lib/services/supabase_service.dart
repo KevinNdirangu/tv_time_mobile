@@ -160,7 +160,13 @@ final libraryProvider = AsyncNotifierProvider<LibraryNotifier, List<LibraryShow>
 
 final allEpisodesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
   final client = Supabase.instance.client;
-  final res = await client.from('episodes').select('id, show_id, air_date');
+  final res = await _fetchAll(client, 'episodes', 'id, show_id, air_date');
+  return List<Map<String, dynamic>>.from(res);
+});
+
+final watchHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final client = Supabase.instance.client;
+  final res = await _fetchAll(client, 'watch_history', 'id, episode_id, watched_at');
   return List<Map<String, dynamic>>.from(res);
 });
 
@@ -505,11 +511,19 @@ class SupabaseActions {
     
     if (rows.isEmpty || rows.length < 2) return;
     
-    final header = rows[0].map((e) => e.toString().toLowerCase()).toList();
-    final showIdx = header.indexOf('show_name');
-    final seasonIdx = header.indexOf('season');
-    final episodeIdx = header.indexOf('episode');
-    final dateIdx = header.indexOf('date_watched');
+    final header = rows[0].map((e) => e.toString().toLowerCase().trim()).toList();
+    int showIdx = header.indexOf('show_name');
+    if (showIdx == -1) showIdx = header.indexOf('series_name');
+    if (showIdx == -1) showIdx = header.indexOf('title');
+    
+    int seasonIdx = header.indexOf('season');
+    if (seasonIdx == -1) seasonIdx = header.indexOf('s_no');
+    
+    int episodeIdx = header.indexOf('episode');
+    if (episodeIdx == -1) episodeIdx = header.indexOf('ep_no');
+    
+    int dateIdx = header.indexOf('date_watched');
+    if (dateIdx == -1) dateIdx = header.indexOf('created_at');
     
     if (showIdx == -1 || seasonIdx == -1 || episodeIdx == -1) return;
 
@@ -523,6 +537,8 @@ class SupabaseActions {
     }
 
     final showNames = showsMap.keys.toList();
+    List<Map<String, dynamic>> watchHistoryBuffer = [];
+    
     for (int i = 0; i < showNames.length; i++) {
       final showName = showNames[i];
       if (onProgress != null) onProgress(i + 1, showNames.length, showName);
@@ -559,15 +575,13 @@ class SupabaseActions {
                 }
                 
                 final maxWatchIdData = await client.from('watch_history').select('id').order('id', ascending: false).limit(1).maybeSingle();
-                final nextId = (maxWatchIdData != null ? maxWatchIdData['id'] as int : 0) + 1;
+                final nextId = (maxWatchIdData != null ? maxWatchIdData['id'] as int : 0) + 1 + watchHistoryBuffer.length;
                 
-                try {
-                  await client.from('watch_history').insert({
-                    'id': nextId,
-                    'episode_id': epId,
-                    if (watchedAt != null && watchedAt.isNotEmpty) 'watched_at': watchedAt
-                  });
-                } catch (_) {} // ignore duplicates
+                watchHistoryBuffer.add({
+                  'id': nextId,
+                  'episode_id': epId,
+                  if (watchedAt != null && watchedAt.isNotEmpty) 'watched_at': watchedAt
+                });
               }
             }
           }
@@ -578,6 +592,18 @@ class SupabaseActions {
       
       // Delay to respect TMDB rate limits
       await Future.delayed(const Duration(milliseconds: 600));
+    }
+
+    if (onProgress != null) onProgress(showNames.length, showNames.length, 'Chunking & Uploading ${watchHistoryBuffer.length} history records...');
+    
+    for (int i = 0; i < watchHistoryBuffer.length; i += 500) {
+      final chunk = watchHistoryBuffer.sublist(i, i + 500 > watchHistoryBuffer.length ? watchHistoryBuffer.length : i + 500);
+      try {
+        await client.from('watch_history').insert(chunk);
+      } catch (e) {
+        debugPrint('Chunk upload error: $e'); // ignore duplicates or partial failures
+      }
+      if (onProgress != null) onProgress(i + chunk.length, watchHistoryBuffer.length, 'Uploaded ${i + chunk.length} / ${watchHistoryBuffer.length} history records...');
     }
   }
 

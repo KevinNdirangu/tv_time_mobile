@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import 'notifications_drawer.dart';
 import 'navigation_drawer.dart';
 import '../providers/notifications_provider.dart';
+import '../providers/statistics_provider.dart';
 
 final statsYearFilterProvider = StateProvider<String>((ref) => 'All Time');
 
@@ -21,6 +22,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     final notifications = ref.watch(notificationsProvider);
     final libraryAsync = ref.watch(libraryProvider);
     final allEpisodesAsync = ref.watch(allEpisodesProvider);
+    final advancedStatsAsync = ref.watch(advancedStatsProvider);
     final selectedYear = ref.watch(statsYearFilterProvider);
 
     return Scaffold(
@@ -203,6 +205,64 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                           ),
                         ),
                       ],
+                    ),
+
+                    advancedStatsAsync.when(
+                      data: (stats) => Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _SectionLabel(label: 'Viewing Habits & Velocity'),
+                          _SettingsGroup(
+                            children: [
+                              _StatRow(icon: Icons.local_fire_department, color: Colors.deepOrange, title: 'Binge Sessions (4+ eps/day)', value: '${stats.bingeCount}'),
+                              _Divider(),
+                              _StatRow(icon: Icons.calendar_today_rounded, color: Colors.blue, title: 'Active Viewing Streak', value: '${stats.maxStreak} Days'),
+                              _Divider(),
+                              _StatRow(icon: Icons.event_note_rounded, color: Colors.purple, title: 'Peak Watch Day', value: stats.topWeekday),
+                              _Divider(),
+                              _StatRow(icon: Icons.nights_stay_rounded, color: Colors.indigo, title: 'Peak Time', value: stats.peakTimeSlot),
+                            ],
+                          ),
+                          _SectionLabel(label: 'Achievement Badges'),
+                          SizedBox(
+                            height: 100,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                _BadgeItem(
+                                  icon: Icons.directions_run_rounded,
+                                  title: 'Marathoner',
+                                  isUnlocked: stats.isMarathoner,
+                                  color: Colors.green,
+                                ),
+                                _BadgeItem(
+                                  icon: Icons.fast_forward_rounded,
+                                  title: 'Serial Binger',
+                                  isUnlocked: stats.isSerialBinger,
+                                  color: Colors.deepOrange,
+                                ),
+                                _BadgeItem(
+                                  icon: Icons.dark_mode_rounded,
+                                  title: 'Night Owl',
+                                  isUnlocked: stats.isNightOwl,
+                                  color: Colors.indigo,
+                                ),
+                                _BadgeItem(
+                                  icon: Icons.wb_sunny_rounded,
+                                  title: 'Early Bird',
+                                  isUnlocked: stats.isEarlyBird,
+                                  color: Colors.amber,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      loading: () => const Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                      error: (err, stack) => Text('Failed to load advanced stats: $err'),
                     ),
 
                     _SectionLabel(label: 'TV Shows'),
@@ -492,6 +552,67 @@ class _BarRow extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String value;
+  const _StatRow({required this.icon, required this.color, required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          _SettingIcon(icon: icon, color: color),
+          const SizedBox(width: 16),
+          Expanded(child: Text(title, style: const TextStyle(color: AppTheme.textMain, fontSize: 15, fontWeight: FontWeight.w500))),
+          Text(value, style: const TextStyle(color: AppTheme.textMuted, fontSize: 15, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+}
+
+class _BadgeItem extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final bool isUnlocked;
+  final Color color;
+
+  const _BadgeItem({required this.icon, required this.title, required this.isUnlocked, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 90,
+      margin: const EdgeInsets.only(right: 12),
+      decoration: BoxDecoration(
+        color: isUnlocked ? color.withValues(alpha: 0.15) : AppTheme.surfaceLight,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isUnlocked ? color.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: isUnlocked ? color : Colors.white24, size: 32),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isUnlocked ? Colors.white : Colors.white54,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
             ),
           ),
         ],

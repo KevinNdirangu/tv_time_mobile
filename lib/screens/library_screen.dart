@@ -4,6 +4,7 @@ import '../services/supabase_service.dart';
 import '../models/library_show.dart';
 import '../theme/app_theme.dart';
 import 'show_details_screen.dart';
+import 'notifications_drawer.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -25,8 +26,17 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final libraryAsync = ref.watch(libraryProvider);
 
     return Scaffold(
+      endDrawer: const NotificationsDrawer(),
       appBar: AppBar(
         title: const Text('Library', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            ),
+          ),
+        ],
       ),
       body: libraryAsync.when(
         data: (library) {
@@ -217,7 +227,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     } else {
       if (libItem.watchedEpisodes == 0) {
         badgeText = 'Not Started';
-        badgeColor = Colors.amber;
+        badgeColor = Colors.grey;
       } else if (libItem.watchedEpisodes >= libItem.airedEpisodes && libItem.airedEpisodes > 0) {
         if (show.status == 'Ended' || show.status == 'Canceled') {
           badgeText = 'Finished';
@@ -226,6 +236,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           badgeText = 'Up to Date';
           badgeColor = Colors.blue;
         }
+      } else {
+        badgeText = 'Watching';
+        badgeColor = Colors.amber;
       }
     }
 

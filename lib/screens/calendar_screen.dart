@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
+import 'notifications_drawer.dart';
 import 'show_details_screen.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
@@ -58,8 +59,17 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final calendarAsync = ref.watch(calendarProvider);
 
     return Scaffold(
+      endDrawer: const NotificationsDrawer(),
       appBar: AppBar(
         title: const Text('Calendar', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            ),
+          ),
+        ],
       ),
       body: calendarAsync.when(
         data: (episodes) {

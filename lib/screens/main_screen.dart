@@ -4,6 +4,7 @@ import 'dashboard_screen.dart';
 import 'library_screen.dart';
 import 'calendar_screen.dart';
 import 'discover_screen.dart';
+import 'notifications_drawer.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -25,6 +26,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      endDrawer: const NotificationsDrawer(),
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,

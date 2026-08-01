@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:confetti/confetti.dart';
 import '../services/tmdb_service.dart';
 import '../services/supabase_service.dart';
 import '../models/show.dart';
@@ -21,11 +22,39 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
   SupabaseShowDetails? localData;
   bool isLoading = true;
   bool _isAddingMedia = false;
+  late ConfettiController _confettiController;
 
   @override
   void initState() {
     super.initState();
+    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
     _fetchData();
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
+  }
+
+  void _checkIfFinished() {
+    if (localData == null || tmdbData == null) return;
+    if (tmdbData!['status'] != 'Ended' && tmdbData!['status'] != 'Canceled') return;
+    
+    int airedCount = 0;
+    final now = DateTime.now();
+    for (var ep in localData!.episodes) {
+      if (ep['air_date'] != null) {
+        final ad = DateTime.tryParse(ep['air_date']);
+        if (ad != null && ad.compareTo(now) <= 0) {
+          airedCount++;
+        }
+      }
+    }
+    
+    if (localData!.watchedEpisodeIds.length >= airedCount && airedCount > 0) {
+      _confettiController.play();
+    }
   }
 
   Future<void> _fetchData() async {
@@ -61,8 +90,10 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
     final title = tmdbData!['title'] ?? tmdbData!['name'] ?? 'Unknown';
     final overview = tmdbData!['overview'] ?? '';
 
-    return Scaffold(
-      body: CustomScrollView(
+    return Stack(
+      children: [
+        Scaffold(
+          body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 250,
@@ -228,6 +259,20 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
           ),
         ],
       ),
+      ),
+      Align(
+        alignment: Alignment.topCenter,
+        child: ConfettiWidget(
+          confettiController: _confettiController,
+          blastDirection: 3.14159 / 2, // downwards
+          maxBlastForce: 5,
+          minBlastForce: 2,
+          emissionFrequency: 0.05,
+          numberOfParticles: 50,
+          gravity: 0.1,
+        ),
+      ),
+      ],
     );
   }
 
@@ -423,6 +468,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                     localData!.watchedEpisodeIds.remove(ep['id']);
                   } else {
                     localData!.watchedEpisodeIds.add(ep['id']);
+                    _checkIfFinished();
                   }
                 });
                 await SupabaseActions.toggleWatched(ep['id'], !isWatched);

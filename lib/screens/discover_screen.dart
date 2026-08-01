@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../services/tmdb_service.dart';
 import '../services/supabase_service.dart';
 import 'show_details_screen.dart';
+import 'notifications_drawer.dart';
 
 class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
@@ -172,8 +173,17 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     final filteredResults = _results.where((item) => !localApiIds.contains(item['id'])).toList();
 
     return Scaffold(
+      endDrawer: const NotificationsDrawer(),
       appBar: AppBar(
         title: const Text('Discover', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          Builder(
+            builder: (context) => IconButton(
+              icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            ),
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),

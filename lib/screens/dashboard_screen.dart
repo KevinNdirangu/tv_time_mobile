@@ -5,6 +5,7 @@ import '../services/supabase_service.dart';
 import '../models/library_show.dart';
 import '../theme/app_theme.dart';
 import 'show_details_screen.dart';
+import 'notifications_drawer.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -15,6 +16,7 @@ class DashboardScreen extends ConsumerWidget {
     final calendarAsync = ref.watch(calendarProvider);
 
     return Scaffold(
+      endDrawer: const NotificationsDrawer(),
       body: SafeArea(
         child: libraryAsync.when(
           data: (libraryData) {
@@ -90,6 +92,20 @@ class DashboardScreen extends ConsumerWidget {
                                 style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
                               ),
                             ],
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Builder(
+                          builder: (context) => Container(
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceLight,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white10),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                              onPressed: () => Scaffold.of(context).openEndDrawer(),
+                            ),
                           ),
                         ),
                       ],

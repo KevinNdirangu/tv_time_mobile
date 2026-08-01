@@ -82,8 +82,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
           return Stack(
             children: [
-              CustomScrollView(
-                controller: _scrollController,
+              RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(calendarProvider);
+                  await ref.read(calendarProvider.future);
+                },
+                child: CustomScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  controller: _scrollController,
                 slivers: [
                   if (pastDates.isNotEmpty)
                     SliverToBoxAdapter(
@@ -151,6 +157,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   for (var dateStr in futureDates)
                     ..._buildDateSection(dateStr, grouped[dateStr]!, todayStr),
                 ],
+              ),
               ),
               // Floating TODAY Button
               Positioned(

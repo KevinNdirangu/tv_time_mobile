@@ -232,7 +232,7 @@ class SupabaseActions {
     final show = Show.fromJson(showRes);
     
     // Get episodes
-    final epRes = await client.from('episodes').select('id, season_number, episode_number').eq('show_id', show.id);
+    final epRes = await client.from('episodes').select('id, season_number, episode_number, air_date, title').eq('show_id', show.id);
     final episodes = List<Map<String, dynamic>>.from(epRes as List);
     
     // Get watch history

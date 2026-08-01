@@ -209,22 +209,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     } else if (isMovie) {
       if (libItem.watchedEpisodes == 0) {
         badgeText = 'Watchlist';
-        badgeColor = Colors.blueGrey;
+        badgeColor = Colors.amber;
       } else {
         badgeText = 'Seen';
-        badgeColor = AppTheme.primary;
+        badgeColor = Colors.green;
       }
     } else {
       if (libItem.watchedEpisodes == 0) {
         badgeText = 'Not Started';
-        badgeColor = Colors.blueGrey;
+        badgeColor = Colors.amber;
       } else if (libItem.watchedEpisodes >= libItem.airedEpisodes && libItem.airedEpisodes > 0) {
         if (show.status == 'Ended' || show.status == 'Canceled') {
           badgeText = 'Finished';
-          badgeColor = Colors.purpleAccent;
+          badgeColor = Colors.green;
         } else {
           badgeText = 'Up to Date';
-          badgeColor = AppTheme.primary;
+          badgeColor = Colors.blue;
         }
       }
     }

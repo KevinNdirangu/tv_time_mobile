@@ -406,8 +406,10 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
         }
       }
 
+      final epTitle = ep['title'] ?? '';
+      
       return ListTile(
-        title: Text('Episode ${ep['episode_number']}', style: TextStyle(color: isWatched ? AppTheme.textMuted : AppTheme.textMain)),
+        title: Text('E${ep['episode_number'].toString().padLeft(2, '0')} $epTitle', style: TextStyle(color: isWatched ? AppTheme.textMuted : AppTheme.textMain)),
         trailing: hasAired 
           ? IconButton(
               icon: Icon(

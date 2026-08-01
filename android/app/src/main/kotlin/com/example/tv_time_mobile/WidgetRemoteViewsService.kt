@@ -32,7 +32,8 @@ class WidgetRemoteViewsFactory(private val context: Context, private val intent:
                 widgetDataList.add(WidgetListItem(
                     title = obj.getString("title"),
                     subtitle = obj.getString("subtitle"),
-                    imagePath = obj.optString("image_path", null)
+                    imagePath = obj.optString("image_path", null),
+                    id = obj.optString("id", "")
                 ))
             }
         } catch (e: Exception) {
@@ -64,6 +65,13 @@ class WidgetRemoteViewsFactory(private val context: Context, private val intent:
             views.setImageViewResource(R.id.item_poster, android.R.color.transparent)
         }
 
+        if (item.id.isNotEmpty()) {
+            val fillInIntent = Intent().apply {
+                data = android.net.Uri.parse("tvtime://show/${item.id}")
+            }
+            views.setOnClickFillInIntent(R.id.widget_list_item_root, fillInIntent)
+        }
+
         return views
     }
 
@@ -76,5 +84,6 @@ class WidgetRemoteViewsFactory(private val context: Context, private val intent:
 data class WidgetListItem(
     val title: String,
     val subtitle: String,
-    val imagePath: String?
+    val imagePath: String?,
+    val id: String
 )

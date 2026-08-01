@@ -189,21 +189,28 @@ final calendarProvider = FutureProvider<List<CalendarEpisode>>((ref) async {
   final client = ref.read(supabaseClientProvider);
   final shows = await ref.watch(showsProvider.future);
   
+  // Filter out stopped shows
+  final activeShows = shows.where((s) => s.isStopped == 0).toList();
+  if (activeShows.isEmpty) return [];
+  
+  final activeShowIds = activeShows.map((s) => s.id).toList();
+
   final now = DateTime.now();
   final past = now.subtract(const Duration(days: 30));
   final fromDate = "${past.year}-${past.month.toString().padLeft(2, '0')}-${past.day.toString().padLeft(2, '0')}";
 
+  // Query episodes that belong to the user's active shows
   final response = await client.from('episodes')
       .select('show_id, season_number, episode_number, title, air_date')
+      .inFilter('show_id', activeShowIds)
       .gte('air_date', fromDate)
-      .order('air_date', ascending: true)
-      .limit(300);
+      .order('air_date', ascending: true);
 
   final List<CalendarEpisode> calendar = [];
   for (var ep in response as List<dynamic>) {
     final showId = ep['show_id'];
     try {
-      final show = shows.firstWhere((s) => s.id == showId && s.isStopped == 0);
+      final show = activeShows.firstWhere((s) => s.id == showId);
       calendar.add(CalendarEpisode(
         showId: showId,
         showTitle: show.title,

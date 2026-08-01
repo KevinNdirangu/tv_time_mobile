@@ -54,7 +54,8 @@ class WidgetService {
         upNextList.add({
           "title": s.show.title,
           "subtitle": "Next: Episode ${s.watchedEpisodes + 1}",
-          "image_path": localPath ?? ""
+          "image_path": localPath ?? "",
+          "id": s.show.id.toString()
         });
       }
       
@@ -62,7 +63,8 @@ class WidgetService {
          upNextList.add({
           "title": "All caught up!",
           "subtitle": "Find a new show",
-          "image_path": ""
+          "image_path": "",
+          "id": ""
         });
       }
 
@@ -89,7 +91,8 @@ class WidgetService {
         calendarList.add({
           "title": ep.showTitle,
           "subtitle": "S${ep.seasonNumber.toString().padLeft(2, '0')}E${ep.episodeNumber.toString().padLeft(2, '0')} - Airs: ${ep.airDate}",
-          "image_path": localPath ?? ""
+          "image_path": localPath ?? "",
+          "id": ep.showId.toString()
         });
       }
       
@@ -97,7 +100,8 @@ class WidgetService {
          calendarList.add({
           "title": "No upcoming shows",
           "subtitle": "",
-          "image_path": ""
+          "image_path": "",
+          "id": ""
         });
       }
 

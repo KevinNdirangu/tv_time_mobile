@@ -5,8 +5,8 @@ class TmdbService {
   static const String _apiKey = '87ca90817435c5a482ec6cb70ce71199';
   static const String _baseUrl = 'https://api.themoviedb.org/3';
 
-  static Future<List<dynamic>> search(String query) async {
-    final url = '$_baseUrl/search/multi?api_key=$_apiKey&query=${Uri.encodeComponent(query)}&include_adult=false';
+  static Future<List<dynamic>> search(String query, {int page = 1}) async {
+    final url = '$_baseUrl/search/multi?api_key=$_apiKey&query=${Uri.encodeComponent(query)}&include_adult=false&page=$page';
     final response = await http.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

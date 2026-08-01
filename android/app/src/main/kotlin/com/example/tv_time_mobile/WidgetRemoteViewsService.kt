@@ -35,7 +35,11 @@ class WidgetRemoteViewsFactory(private val context: Context, private val intent:
                     imagePath = obj.optString("image_path", null),
                     id = obj.optString("id", ""),
                     tmdbId = obj.optString("tmdb_id", ""),
-                    type = obj.optString("type", "")
+                    type = obj.optString("type", ""),
+                    network = obj.optString("network", null),
+                    airDate = obj.optString("air_date", null),
+                    airTime = obj.optString("air_time", null),
+                    unwatchedCount = obj.optString("unwatched_count", null)
                 ))
             }
         } catch (e: Exception) {
@@ -51,30 +55,54 @@ class WidgetRemoteViewsFactory(private val context: Context, private val intent:
 
     override fun getViewAt(position: Int): RemoteViews {
         val item = widgetDataList[position]
-        val views = RemoteViews(context.packageName, R.layout.widget_list_item)
+        val rv = RemoteViews(context.packageName, R.layout.widget_list_item)
         
-        views.setTextViewText(R.id.item_title, item.title)
-        views.setTextViewText(R.id.item_subtitle, item.subtitle)
+        rv.setTextViewText(R.id.item_title, item.title)
+        rv.setTextViewText(R.id.item_subtitle, item.subtitle)
+
+        // Handle Upcoming (Calendar) Fields
+        if (!item.network.isNullOrEmpty()) {
+            rv.setTextViewText(R.id.item_network_badge, item.network)
+            rv.setViewVisibility(R.id.item_network_badge, android.view.View.VISIBLE)
+        } else {
+            rv.setViewVisibility(R.id.item_network_badge, android.view.View.GONE)
+        }
+
+        if (!item.airDate.isNullOrEmpty() || !item.airTime.isNullOrEmpty()) {
+            rv.setTextViewText(R.id.item_air_date, item.airDate ?: "")
+            rv.setTextViewText(R.id.item_air_time, item.airTime ?: "")
+            rv.setViewVisibility(R.id.item_right_container, android.view.View.VISIBLE)
+        } else {
+            rv.setViewVisibility(R.id.item_right_container, android.view.View.GONE)
+        }
+
+        // Handle Watch List (Up Next) Fields
+        if (!item.unwatchedCount.isNullOrEmpty()) {
+            rv.setTextViewText(R.id.item_unwatched_count, item.unwatchedCount)
+            rv.setViewVisibility(R.id.item_unwatched_count, android.view.View.VISIBLE)
+        } else {
+            rv.setViewVisibility(R.id.item_unwatched_count, android.view.View.GONE)
+        }
 
         if (!item.imagePath.isNullOrEmpty()) {
             val bitmap = BitmapFactory.decodeFile(item.imagePath)
             if (bitmap != null) {
-                views.setImageViewBitmap(R.id.item_poster, bitmap)
+                rv.setImageViewBitmap(R.id.item_poster, bitmap)
             } else {
-                views.setImageViewResource(R.id.item_poster, android.R.color.transparent)
+                rv.setImageViewResource(R.id.item_poster, android.R.color.transparent)
             }
         } else {
-            views.setImageViewResource(R.id.item_poster, android.R.color.transparent)
+            rv.setImageViewResource(R.id.item_poster, android.R.color.transparent)
         }
 
         if (item.tmdbId.isNotEmpty() && item.type.isNotEmpty()) {
             val fillInIntent = Intent().apply {
                 data = android.net.Uri.parse("tvtime://show/${item.tmdbId}/${item.type}")
             }
-            views.setOnClickFillInIntent(R.id.widget_list_item_root, fillInIntent)
+            rv.setOnClickFillInIntent(R.id.widget_list_item_root, fillInIntent)
         }
 
-        return views
+        return rv
     }
 
     override fun getLoadingView(): RemoteViews? = null
@@ -83,11 +111,16 @@ class WidgetRemoteViewsFactory(private val context: Context, private val intent:
     override fun hasStableIds(): Boolean = true
 }
 
+
 data class WidgetListItem(
     val title: String,
     val subtitle: String,
     val imagePath: String?,
     val id: String,
     val tmdbId: String,
-    val type: String
+    val type: String,
+    val network: String?,
+    val airDate: String?,
+    val airTime: String?,
+    val unwatchedCount: String?
 )

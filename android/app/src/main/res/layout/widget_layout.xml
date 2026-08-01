@@ -2,27 +2,44 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/widget_background">
+    android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/widget_title"
+    <!-- Header -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Continue Watching"
-        android:textColor="#E5A00D"
-        android:textSize="14sp"
-        android:textStyle="bold"
-        android:padding="12dp"
-        android:background="#22000000" />
+        android:background="@drawable/widget_header_bg"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp">
 
+        <TextView
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:background="@drawable/tv_time_icon_bg"
+            android:gravity="center"
+            android:text="T"
+            android:textColor="#FFCC00"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Watch List"
+            android:textColor="#000000"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <!-- List -->
     <ListView
         android:id="@+id/widget_list_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:divider="@null"
-        android:dividerHeight="0dp"
-        android:clipToPadding="false"
-        android:paddingBottom="8dp" />
+        android:background="@drawable/widget_list_bg"
+        android:divider="#333333"
+        android:dividerHeight="1dp" />
 
 </LinearLayout>

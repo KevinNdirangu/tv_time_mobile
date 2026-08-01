@@ -4,13 +4,13 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
-    android:padding="8dp"
+    android:padding="0dp"
     android:gravity="center_vertical">
 
     <ImageView
         android:id="@+id/item_poster"
-        android:layout_width="48dp"
-        android:layout_height="72dp"
+        android:layout_width="56dp"
+        android:layout_height="84dp"
         android:scaleType="centerCrop"
         android:background="#33FFFFFF" />
 
@@ -19,7 +19,8 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical"
-        android:paddingStart="12dp">
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp">
 
         <TextView
             android:id="@+id/item_title"
@@ -31,16 +32,69 @@
             android:maxLines="1"
             android:ellipsize="end" />
 
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            
+            <TextView
+                android:id="@+id/item_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:maxLines="1"
+                android:ellipsize="end" />
+                
+            <TextView
+                android:id="@+id/item_network_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/badge_bg"
+                android:textColor="#000000"
+                android:textSize="9sp"
+                android:visibility="gone"
+                android:maxLines="1" />
+                
+            <TextView
+                android:id="@+id/item_unwatched_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:textColor="#AAAAAA"
+                android:textSize="12sp"
+                android:visibility="gone"
+                android:maxLines="1" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/item_right_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingEnd="12dp"
+        android:gravity="end">
+
         <TextView
-            android:id="@+id/item_subtitle"
+            android:id="@+id/item_air_date"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="#AAAAAA"
-            android:textSize="12sp"
-            android:layout_marginTop="2dp"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:textSize="10sp"
+            android:textAllCaps="true"
+            android:maxLines="1" />
 
+        <TextView
+            android:id="@+id/item_air_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#AAAAAA"
+            android:textSize="10sp"
+            android:maxLines="1" />
     </LinearLayout>
 
 </LinearLayout>

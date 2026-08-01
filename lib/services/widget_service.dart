@@ -51,13 +51,15 @@ class WidgetService {
       // Get up to 10 shows for the list
       for (var s in watching.take(10)) {
         final localPath = await _downloadAndCacheImage(s.show.posterUrl, s.show.id.toString());
+        final unwatched = s.show.totalEpisodes - s.watchedEpisodes;
         upNextList.add({
           "title": s.show.title,
-          "subtitle": "Next: Episode ${s.watchedEpisodes + 1}",
+          "subtitle": "Next: Ep ${s.watchedEpisodes + 1}",
           "image_path": localPath ?? "",
           "id": s.show.id.toString(),
           "tmdb_id": s.show.apiId.toString(),
-          "type": s.show.type
+          "type": s.show.type,
+          "unwatched_count": unwatched > 0 ? "+$unwatched" : ""
         });
       }
       
@@ -90,13 +92,31 @@ class WidgetService {
       // Get up to 15 episodes for the list
       for (var ep in upcoming.take(15)) {
         final localPath = await _downloadAndCacheImage(ep.posterUrl, ep.showId.toString());
+        
+        // Format date "YYYY-MM-DD" to "MON DD"
+        String formattedDate = ep.airDate;
+        try {
+           final parsed = DateTime.parse(ep.airDate);
+           final diff = parsed.difference(DateTime(now.year, now.month, now.day)).inDays;
+           if (diff == 0) {
+              formattedDate = "TODAY";
+           } else if (diff == 1) {
+              formattedDate = "TOMORROW";
+           } else {
+              final months = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+              formattedDate = "${months[parsed.month - 1]} ${parsed.day}";
+           }
+        } catch (_) {}
+
         calendarList.add({
           "title": ep.showTitle,
-          "subtitle": "S${ep.seasonNumber.toString().padLeft(2, '0')}E${ep.episodeNumber.toString().padLeft(2, '0')} - Airs: ${ep.airDate}",
+          "subtitle": "S${ep.seasonNumber.toString().padLeft(2, '0')} | E${ep.episodeNumber.toString().padLeft(2, '0')}",
           "image_path": localPath ?? "",
           "id": ep.showId.toString(),
           "tmdb_id": ep.tmdbId.toString(),
-          "type": ep.type
+          "type": ep.type,
+          "air_date": formattedDate,
+          "air_time": "TBA"
         });
       }
       

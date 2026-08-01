@@ -53,15 +53,36 @@ class SettingsScreen extends ConsumerWidget {
       try {
         final data = await SupabaseActions.exportDatabase();
         final shows = data.firstWhere((e) => e['table'] == 'shows')['data'] as List<dynamic>;
-        if (shows.isEmpty) {
+        final episodes = data.firstWhere((e) => e['table'] == 'episodes')['data'] as List<dynamic>;
+        final history = data.firstWhere((e) => e['table'] == 'watch_history')['data'] as List<dynamic>;
+        
+        if (history.isEmpty) {
           if (!context.mounted) return;
-          _snack(context, 'No data to export');
+          _snack(context, 'No watch history to export');
           return;
         }
+
+        final showMap = {for (var s in shows) s['id']: s['title']};
+        final epMap = {for (var e in episodes) e['id']: e};
+
         List<List<dynamic>> rows = [
-          (shows.first as Map<String, dynamic>).keys.toList(),
-          ...shows.map((s) => (s as Map<String, dynamic>).values.toList()),
+          ['show_name', 'season', 'episode', 'episode_name', 'date_watched']
         ];
+        
+        for (var h in history) {
+          final ep = epMap[h['episode_id']];
+          if (ep != null) {
+            final showTitle = showMap[ep['show_id']] ?? 'Unknown Show';
+            rows.add([
+              showTitle,
+              ep['season_number'],
+              ep['episode_number'],
+              ep['title'] ?? '',
+              h['watched_at'] ?? h['created_at'] ?? ''
+            ]);
+          }
+        }
+
         final csvStr = const ListToCsvConverter().convert(rows);
         final directory = await getTemporaryDirectory();
         final file = File('${directory.path}/tv_time_backup.csv');

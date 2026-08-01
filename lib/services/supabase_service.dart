@@ -298,6 +298,14 @@ class SupabaseActions {
 
     List<dynamic> insertedEps = [];
     if (newEps.isNotEmpty) {
+      // Fetch max episode ID to bypass broken sequence
+      final maxEpIdData = await client.from('episodes').select('id').order('id', ascending: false).limit(1).maybeSingle();
+      int nextEpId = (maxEpIdData != null ? maxEpIdData['id'] as int : 0) + 1;
+      
+      for (int i = 0; i < newEps.length; i++) {
+        newEps[i]['id'] = nextEpId++;
+      }
+
       // Chunking insert to avoid limits
       for (int i = 0; i < newEps.length; i += 100) {
         final chunk = newEps.sublist(i, i + 100 > newEps.length ? newEps.length : i + 100);

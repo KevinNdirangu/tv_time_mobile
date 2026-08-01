@@ -177,7 +177,8 @@ final calendarProvider = FutureProvider<List<CalendarEpisode>>((ref) async {
   final shows = await ref.watch(showsProvider.future);
   
   final now = DateTime.now();
-  final fromDate = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+  final past = now.subtract(const Duration(days: 30));
+  final fromDate = "${past.year}-${past.month.toString().padLeft(2, '0')}-${past.day.toString().padLeft(2, '0')}";
 
   final response = await client.from('episodes')
       .select('show_id, season_number, episode_number, title, air_date')

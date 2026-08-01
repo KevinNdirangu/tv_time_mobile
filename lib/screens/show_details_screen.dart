@@ -388,29 +388,50 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
     // sort episodes by episode_number
     localEpisodes.sort((a, b) => a['episode_number'].compareTo(b['episode_number']));
 
+    final now = DateTime.now();
+
     return localEpisodes.map((ep) {
       final isWatched = localData!.watchedEpisodeIds.contains(ep['id']);
+      
+      bool hasAired = false;
+      String airDateText = 'TBA';
+      if (ep['air_date'] != null) {
+        final ad = DateTime.tryParse(ep['air_date']);
+        if (ad != null) {
+          if (ad.compareTo(now) <= 0) {
+            hasAired = true;
+          } else {
+            airDateText = 'Airs: ${ep['air_date']}';
+          }
+        }
+      }
+
       return ListTile(
         title: Text('Episode ${ep['episode_number']}', style: TextStyle(color: isWatched ? AppTheme.textMuted : AppTheme.textMain)),
-        trailing: IconButton(
-          icon: Icon(
-            isWatched ? Icons.check_circle : Icons.circle_outlined,
-            color: isWatched ? AppTheme.primary : AppTheme.textMuted,
-          ),
-          onPressed: () async {
-            // Optimistic update
-            setState(() {
-              if (isWatched) {
-                localData!.watchedEpisodeIds.remove(ep['id']);
-              } else {
-                localData!.watchedEpisodeIds.add(ep['id']);
-              }
-            });
-            await SupabaseActions.toggleWatched(ep['id'], !isWatched);
-            ref.invalidate(showsProvider);
-            ref.invalidate(calendarProvider);
-          },
-        ),
+        trailing: hasAired 
+          ? IconButton(
+              icon: Icon(
+                isWatched ? Icons.check_circle : Icons.circle_outlined,
+                color: isWatched ? AppTheme.primary : AppTheme.textMuted,
+              ),
+              onPressed: () async {
+                // Optimistic update
+                setState(() {
+                  if (isWatched) {
+                    localData!.watchedEpisodeIds.remove(ep['id']);
+                  } else {
+                    localData!.watchedEpisodeIds.add(ep['id']);
+                  }
+                });
+                await SupabaseActions.toggleWatched(ep['id'], !isWatched);
+                ref.invalidate(showsProvider);
+                ref.invalidate(calendarProvider);
+              },
+            )
+          : Text(
+              airDateText, 
+              style: const TextStyle(color: AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.bold)
+            ),
       );
     }).toList();
   }

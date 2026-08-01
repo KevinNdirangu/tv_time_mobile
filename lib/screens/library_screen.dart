@@ -200,6 +200,35 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final isMovie = show.type == 'movie';
     final unwatched = libItem.airedEpisodes - libItem.watchedEpisodes;
     
+    String? badgeText;
+    Color? badgeColor;
+
+    if (show.isStopped == 1) {
+      badgeText = 'Stopped';
+      badgeColor = Colors.red;
+    } else if (isMovie) {
+      if (libItem.watchedEpisodes == 0) {
+        badgeText = 'Watchlist';
+        badgeColor = Colors.blueGrey;
+      } else {
+        badgeText = 'Seen';
+        badgeColor = AppTheme.primary;
+      }
+    } else {
+      if (libItem.watchedEpisodes == 0) {
+        badgeText = 'Not Started';
+        badgeColor = Colors.blueGrey;
+      } else if (libItem.watchedEpisodes >= libItem.airedEpisodes && libItem.airedEpisodes > 0) {
+        if (show.status == 'Ended' || show.status == 'Canceled') {
+          badgeText = 'Finished';
+          badgeColor = Colors.purpleAccent;
+        } else {
+          badgeText = 'Up to Date';
+          badgeColor = AppTheme.primary;
+        }
+      }
+    }
+
     return GestureDetector(
       onTap: () {
         Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailsScreen(
@@ -223,7 +252,34 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             ),
           ),
           
-          // Unwatched Badge
+          // Status Badge (Top Left)
+          if (badgeText != null)
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: badgeColor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(8),
+                    bottomRight: Radius.circular(8),
+                  ),
+                  boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4)],
+                ),
+                child: Text(
+                  badgeText.toUpperCase(),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+
+          // Unwatched Badge (Top Right)
           if (!isMovie && unwatched > 0 && show.isStopped == 0)
             Positioned(
               top: 4,
@@ -271,7 +327,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             Positioned.fill(
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Center(

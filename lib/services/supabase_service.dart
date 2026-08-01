@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/show.dart';
 import '../models/library_show.dart';
 import 'tmdb_service.dart';
+import 'widget_service.dart';
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
@@ -144,6 +145,12 @@ class LibraryNotifier extends AsyncNotifier<List<LibraryShow>> {
 
     // Save to cache
     await prefs.setString(_cacheKey, json.encode(lib.map((e) => e.toJson()).toList()));
+    
+    // Update Android Home Screen Widget
+    try {
+      await WidgetService.updateUpNextWidget(lib);
+    } catch (_) {}
+
     return lib;
   }
 }

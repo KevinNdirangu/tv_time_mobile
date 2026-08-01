@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/main_screen.dart';
 import 'theme/app_theme.dart';
+import 'services/widget_service.dart';
 
 final themeRebuildProvider = StateProvider<int>((ref) => 0);
 
@@ -15,6 +16,7 @@ void main() async {
   );
 
   await AppTheme.loadPrimaryColor();
+  await WidgetService.init();
 
   runApp(
     const ProviderScope(

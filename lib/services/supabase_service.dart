@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -499,21 +500,84 @@ class SupabaseActions {
     return buf.toString();
   }
 
-  static Future<void> importCsv(List<List<dynamic>> rows) async {
-    // Basic CSV import logic (assuming specific format or mapping)
-    // For this task, we'll assume it's a simple list of TMDB IDs to add
-    for (var row in rows) {
-      if (row.isEmpty) continue;
-      final tmdbId = int.tryParse(row[0].toString());
-      final type = row.length > 1 ? row[1].toString() : 'tv';
-      
-      if (tmdbId != null) {
-        try {
-          await addMedia(tmdbId, type, markSeen: true);
-        } catch (e) {
-          // Skip if error
+  static Future<void> importCsv(List<List<dynamic>> rows, {Function(int, int, String)? onProgress}) async {
+    final client = Supabase.instance.client;
+    
+    if (rows.isEmpty || rows.length < 2) return;
+    
+    final header = rows[0].map((e) => e.toString().toLowerCase()).toList();
+    final showIdx = header.indexOf('show_name');
+    final seasonIdx = header.indexOf('season');
+    final episodeIdx = header.indexOf('episode');
+    final dateIdx = header.indexOf('date_watched');
+    
+    if (showIdx == -1 || seasonIdx == -1 || episodeIdx == -1) return;
+
+    final Map<String, List<List<dynamic>>> showsMap = {};
+    for (int i = 1; i < rows.length; i++) {
+      final row = rows[i];
+      if (row.length <= showIdx) continue;
+      final showName = row[showIdx].toString();
+      if (showName.isEmpty) continue;
+      showsMap.putIfAbsent(showName, () => []).add(row);
+    }
+
+    final showNames = showsMap.keys.toList();
+    for (int i = 0; i < showNames.length; i++) {
+      final showName = showNames[i];
+      if (onProgress != null) onProgress(i + 1, showNames.length, showName);
+
+      try {
+        final searchRes = await TmdbService.search(showName);
+        if (searchRes.isNotEmpty) {
+          final tmdbId = searchRes.first['id'];
+          final type = searchRes.first['media_type'] == 'movie' ? 'movie' : 'tv';
+          
+          await addMedia(tmdbId, type, markSeen: false);
+          
+          // Get localId
+          final showData = await client.from('shows').select('id').eq('api_id', tmdbId).maybeSingle();
+          if (showData != null) {
+            final localId = showData['id'];
+            final epData = await client.from('episodes').select('id, season_number, episode_number').eq('show_id', localId);
+            final epsMap = <String, int>{};
+            for (var ep in epData as List) {
+              epsMap['${ep['season_number']}-${ep['episode_number']}'] = ep['id'];
+            }
+            
+            for (var row in showsMap[showName]!) {
+              if (row.length <= episodeIdx) continue;
+              final sNum = int.tryParse(row[seasonIdx].toString());
+              final eNum = int.tryParse(row[episodeIdx].toString());
+              if (sNum == null || eNum == null) continue;
+              
+              final epId = epsMap['$sNum-$eNum'];
+              if (epId != null) {
+                String? watchedAt;
+                if (dateIdx != -1 && row.length > dateIdx) {
+                   watchedAt = row[dateIdx].toString();
+                }
+                
+                final maxWatchIdData = await client.from('watch_history').select('id').order('id', ascending: false).limit(1).maybeSingle();
+                final nextId = (maxWatchIdData != null ? maxWatchIdData['id'] as int : 0) + 1;
+                
+                try {
+                  await client.from('watch_history').insert({
+                    'id': nextId,
+                    'episode_id': epId,
+                    if (watchedAt != null && watchedAt.isNotEmpty) 'watched_at': watchedAt
+                  });
+                } catch (_) {} // ignore duplicates
+              }
+            }
+          }
         }
+      } catch (e) {
+        debugPrint('Error importing $showName: $e');
       }
+      
+      // Delay to respect TMDB rate limits
+      await Future.delayed(const Duration(milliseconds: 600));
     }
   }
 

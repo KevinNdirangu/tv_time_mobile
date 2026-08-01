@@ -82,10 +82,44 @@ class SettingsScreen extends ConsumerWidget {
           final file = File(result.files.single.path!);
           final csvStr = await file.readAsString();
           final fields = const CsvToListConverter().convert(csvStr);
-          if (fields.isNotEmpty && fields[0][0].toString().toLowerCase().contains('id')) {
-            fields.removeAt(0);
+          
+          if (!context.mounted) return;
+          
+          final progressNotifier = ValueNotifier<String>('Starting import...');
+          
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppTheme.surfaceLight,
+              title: Text('Importing CSV', style: const TextStyle(color: AppTheme.textMain, fontSize: 18, fontWeight: FontWeight.bold)),
+              content: ValueListenableBuilder<String>(
+                valueListenable: progressNotifier,
+                builder: (context, value, child) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: AppTheme.primary),
+                      const SizedBox(height: 20),
+                      Text(value, style: const TextStyle(color: AppTheme.textMuted, fontSize: 14), textAlign: TextAlign.center),
+                    ],
+                  );
+                },
+              ),
+            ),
+          );
+
+          await SupabaseActions.importCsv(
+            fields,
+            onProgress: (current, total, showName) {
+              progressNotifier.value = 'Processing $current of $total\n$showName';
+            }
+          );
+          
+          if (context.mounted) {
+            Navigator.pop(context); // close modal
           }
-          await SupabaseActions.importCsv(fields);
+          
           ref.invalidate(libraryProvider);
           if (!context.mounted) return;
           _snack(context, '✓ Import complete!');

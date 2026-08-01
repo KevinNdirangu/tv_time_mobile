@@ -47,15 +47,18 @@ class _MyAppState extends ConsumerState<MyApp> {
   void _handleWidgetRoute(Uri? uri) {
     if (uri != null && uri.scheme == 'tvtime') {
       if (uri.host == 'show') {
-        final showIdStr = uri.pathSegments.first;
-        final showId = int.tryParse(showIdStr);
-        if (showId != null) {
-          // Push show details
-          navigatorKey.currentState?.push(
-            MaterialPageRoute(
-              builder: (context) => ShowDetailsScreen(showId: showId),
-            ),
-          );
+        if (uri.pathSegments.length >= 2) {
+          final tmdbIdStr = uri.pathSegments[0];
+          final type = uri.pathSegments[1];
+          final tmdbId = int.tryParse(tmdbIdStr);
+          if (tmdbId != null) {
+            // Push show details
+            navigatorKey.currentState?.push(
+              MaterialPageRoute(
+                builder: (context) => ShowDetailsScreen(tmdbId: tmdbId, type: type),
+              ),
+            );
+          }
         }
       } else if (uri.host == 'home') {
         navigatorKey.currentState?.popUntil((route) => route.isFirst);

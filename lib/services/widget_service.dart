@@ -55,7 +55,9 @@ class WidgetService {
           "title": s.show.title,
           "subtitle": "Next: Episode ${s.watchedEpisodes + 1}",
           "image_path": localPath ?? "",
-          "id": s.show.id.toString()
+          "id": s.show.id.toString(),
+          "tmdb_id": s.show.apiId.toString(),
+          "type": s.show.type
         });
       }
       
@@ -92,7 +94,9 @@ class WidgetService {
           "title": ep.showTitle,
           "subtitle": "S${ep.seasonNumber.toString().padLeft(2, '0')}E${ep.episodeNumber.toString().padLeft(2, '0')} - Airs: ${ep.airDate}",
           "image_path": localPath ?? "",
-          "id": ep.showId.toString()
+          "id": ep.showId.toString(),
+          "tmdb_id": ep.tmdbId.toString(),
+          "type": ep.type
         });
       }
       

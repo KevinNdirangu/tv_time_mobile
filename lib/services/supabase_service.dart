@@ -172,6 +172,7 @@ class CalendarEpisode {
   final String title;
   final String airDate;
   final int tmdbId;
+  final String type;
 
   CalendarEpisode({
     required this.showId,
@@ -182,6 +183,7 @@ class CalendarEpisode {
     required this.title,
     required this.airDate,
     required this.tmdbId,
+    required this.type,
   });
 }
 
@@ -220,6 +222,7 @@ final calendarProvider = FutureProvider<List<CalendarEpisode>>((ref) async {
         title: ep['title'] ?? 'TBA',
         airDate: ep['air_date'],
         tmdbId: show.apiId,
+        type: show.type,
       ));
     } catch (e) {
       // Show not found or is stopped, ignore

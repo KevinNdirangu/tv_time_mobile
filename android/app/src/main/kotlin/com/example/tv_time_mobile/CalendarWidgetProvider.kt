@@ -14,14 +14,14 @@ class CalendarWidgetProvider : HomeWidgetProvider() {
             val views = RemoteViews(context.packageName, R.layout.calendar_widget_layout)
 
             val launchIntent = Intent(context, MainActivity::class.java).apply {
-                action = es.antonborri.home_widget.HomeWidgetPlugin.HOME_WIDGET_LAUNCH_ACTION
+                action = "es.antonborri.home_widget.action.LAUNCH"
                 data = Uri.parse("tvtime://home")
             }
             val pendingIntent = android.app.PendingIntent.getActivity(context, 0, launchIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE)
             views.setOnClickPendingIntent(R.id.widget_title, pendingIntent)
 
             val templateIntent = Intent(context, MainActivity::class.java).apply {
-                action = es.antonborri.home_widget.HomeWidgetPlugin.HOME_WIDGET_LAUNCH_ACTION
+                action = "es.antonborri.home_widget.action.LAUNCH"
             }
             val pendingTemplate = android.app.PendingIntent.getActivity(context, 1, templateIntent, android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE)
             views.setPendingIntentTemplate(R.id.widget_list_view, pendingTemplate)

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
+import 'show_details_screen.dart';
 
 class LibraryScreen extends ConsumerWidget {
   const LibraryScreen({super.key});
@@ -30,15 +31,23 @@ class LibraryScreen extends ConsumerWidget {
             itemCount: shows.length,
             itemBuilder: (context, index) {
               final show = shows[index];
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: show.posterUrl != null && show.posterUrl!.isNotEmpty
-                    ? Image.network(
-                        show.posterUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(),
-                      )
-                    : _buildPlaceholder(),
+              return GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailsScreen(
+                    tmdbId: show.apiId,
+                    type: show.type,
+                  )));
+                },
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: show.posterUrl != null && show.posterUrl!.isNotEmpty
+                      ? Image.network(
+                          show.posterUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                        )
+                      : _buildPlaceholder(),
+                ),
               );
             },
           );

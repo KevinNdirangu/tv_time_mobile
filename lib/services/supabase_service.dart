@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/show.dart';
+import '../models/library_show.dart';
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
@@ -14,6 +15,82 @@ final showsProvider = FutureProvider<List<Show>>((ref) async {
   
   // Map the JSON objects to Show model
   return (response as List<dynamic>).map((e) => Show.fromJson(e)).toList();
+});
+
+final libraryProvider = FutureProvider<List<LibraryShow>>((ref) async {
+  final client = ref.read(supabaseClientProvider);
+  
+  // Fetch all data in parallel
+  final results = await Future.wait([
+    client.from('shows').select('*'),
+    client.from('episodes').select('id, show_id, season_number, runtime, air_date'),
+    client.from('watch_history').select('id, episode_id, watched_at'),
+  ]);
+
+  final showsRaw = results[0] as List<dynamic>;
+  final epsRaw = results[1] as List<dynamic>;
+  final histRaw = results[2] as List<dynamic>;
+
+  final shows = showsRaw.map((e) => Show.fromJson(e)).toList();
+
+  // Map to group episodes by show ID
+  final Map<int, List<Map<String, dynamic>>> showEpisodes = {};
+  for (var show in shows) {
+    showEpisodes[show.id] = [];
+  }
+
+  // Map to group watch history by episode ID
+  final Map<int, List<Map<String, dynamic>>> epHistory = {};
+  
+  for (var ep in epsRaw) {
+    epHistory[ep['id']] = [];
+    if (showEpisodes.containsKey(ep['show_id'])) {
+      showEpisodes[ep['show_id']]!.add(ep as Map<String, dynamic>);
+    }
+  }
+
+  for (var h in histRaw) {
+    if (epHistory.containsKey(h['episode_id'])) {
+      epHistory[h['episode_id']]!.add(h as Map<String, dynamic>);
+    }
+  }
+
+  final now = DateTime.now();
+
+  return shows.map((s) {
+    int watched = 0;
+    int aired = 0;
+    int lastWatched = 0;
+    int runtime = 0;
+
+    final episodes = showEpisodes[s.id] ?? [];
+    for (var ep in episodes) {
+      if ((ep['season_number'] ?? 0) > 0) {
+        if (ep['air_date'] != null) {
+          final airDate = DateTime.tryParse(ep['air_date']);
+          if (airDate != null && airDate.compareTo(now) <= 0) {
+            aired++;
+          }
+        }
+        
+        final history = epHistory[ep['id']] ?? [];
+        if (history.isNotEmpty) {
+          watched++;
+          runtime += (ep['runtime'] as int? ?? 0);
+          final wAt = DateTime.tryParse(history[0]['watched_at'] ?? '')?.millisecondsSinceEpoch ?? 0;
+          if (wAt > lastWatched) lastWatched = wAt;
+        }
+      }
+    }
+
+    return LibraryShow(
+      show: s,
+      watchedEpisodes: watched,
+      airedEpisodes: aired,
+      runtime: runtime,
+      lastWatched: lastWatched > 0 ? DateTime.fromMillisecondsSinceEpoch(lastWatched).toIso8601String() : null,
+    );
+  }).toList();
 });
 
 class CalendarEpisode {

@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+node_modules/
+tracker.db
+github_sync.json
+backup/
+*.log
+diff.txt
+temp.js
+temp_style.css
+patch*.js

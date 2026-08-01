@@ -118,7 +118,7 @@ class DashboardScreen extends ConsumerWidget {
                               isLabelVisible: notifications.isNotEmpty,
                               alignment: Alignment.topRight,
                               child: IconButton(
-                                icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                                icon: Icon(Icons.notifications_rounded, color: AppTheme.primary),
                                 onPressed: () => Scaffold.of(context).openEndDrawer(),
                               ),
                             ),
@@ -206,7 +206,7 @@ class DashboardScreen extends ConsumerWidget {
               ),
             );
           },
-          loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+          loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
           error: (err, stack) => Center(child: Text('Error loading dashboard: $err')),
         ),
       ),
@@ -274,7 +274,7 @@ class DashboardScreen extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       '${item.watchedEpisodes}/${item.show.totalEpisodes}',
-                      style: const TextStyle(fontSize: 10, color: AppTheme.primary, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 10, color: AppTheme.primary, fontWeight: FontWeight.bold),
                       textAlign: TextAlign.right,
                     ),
                   ]

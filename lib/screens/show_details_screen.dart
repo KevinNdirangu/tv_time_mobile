@@ -73,7 +73,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
-      return const Scaffold(
+      return Scaffold(
         backgroundColor: AppTheme.background,
         body: Center(child: CircularProgressIndicator(color: AppTheme.primary)),
       );
@@ -108,7 +108,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                   ? Image.network(
                       'https://image.tmdb.org/t/p/w780$backdrop',
                       fit: BoxFit.cover,
-                      color: Colors.black.withOpacity(0.4),
+                      color: Colors.black.withValues(alpha: 0.4),
                       colorBlendMode: BlendMode.darken,
                     )
                   : Container(color: AppTheme.surfaceLight),
@@ -183,7 +183,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                               backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
                               foregroundColor: AppTheme.primary,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: AppTheme.primary)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: AppTheme.primary)),
                             ),
                             icon: const Icon(Icons.check),
                             label: const Text('In Library', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -222,7 +222,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                         const SizedBox(width: 16),
                         Text(
                           tmdbData!['status'],
-                          style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                          style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, fontSize: 12),
                         ),
                       ],
                     ],
@@ -420,7 +420,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
           child: ExpansionTile(
             title: Text(season['name'] ?? 'Season $seasonNum', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMain)),
             subtitle: localData != null
-                ? Text('$watchedCount / ${localEpisodes.length} Watched', style: const TextStyle(color: AppTheme.primary))
+                ? Text('$watchedCount / ${localEpisodes.length} Watched', style: TextStyle(color: AppTheme.primary))
                 : Text('${season['episode_count']} Episodes', style: const TextStyle(color: AppTheme.textMuted)),
             children: localData != null ? _buildEpisodeRows(localEpisodes) : [const Padding(padding: EdgeInsets.all(16), child: Text('Add to library to track episodes', style: TextStyle(color: AppTheme.textMuted)))],
           ),

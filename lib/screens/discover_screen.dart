@@ -60,78 +60,50 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   }
 
   Future<void> _loadMore() async {
-    setState(() => _isLoadingMore = true);
-    
-    final libraryAsync = ref.read(libraryProvider);
-    final localApiIds = libraryAsync.maybeWhen(
-      data: (data) => data.map((s) => s.show.apiId).toSet(),
-      orElse: () => <int>{},
-    );
+    try {
+      setState(() => _isLoadingMore = true);
+      
+      final libraryAsync = ref.read(libraryProvider);
+      final localApiIds = libraryAsync.maybeWhen(
+        data: (data) => data.map((s) => s.show.apiId).toSet(),
+        orElse: () => <int>{},
+      );
 
-    int validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
-    final targetCount = validCount + 15;
-    
-    while (validCount < targetCount && _page <= 20) {
-      _page++;
-      List<dynamic> newResults = [];
-      if (_searchController.text.trim().isEmpty) {
-        newResults = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
-      } else {
-        newResults = await TmdbService.search(_searchController.text.trim(), page: _page);
-        newResults = newResults.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
+      int validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
+      final targetCount = validCount + 15;
+      
+      while (validCount < targetCount && _page <= 20) {
+        _page++;
+        List<dynamic> newResults = [];
+        if (_searchController.text.trim().isEmpty) {
+          newResults = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
+        } else {
+          newResults = await TmdbService.search(_searchController.text.trim(), page: _page);
+          newResults = newResults.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
+        }
+        if (newResults.isEmpty) break;
+        _results.addAll(newResults);
+        validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
       }
-      if (newResults.isEmpty) break;
-      _results.addAll(newResults);
-      validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
+    } catch (e) {
+      debugPrint('Error loading more: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMore = false;
+        });
+      }
     }
-    
-    if (!mounted) return;
-    setState(() {
-      _isLoadingMore = false;
-    });
   }
 
   Future<void> _loadTrending() async {
-    setState(() {
-      _isLoading = true;
-      _page = 1;
-      _results.clear();
-    });
-
-    final libraryAsync = ref.read(libraryProvider);
-    final localApiIds = libraryAsync.maybeWhen(
-      data: (data) => data.map((s) => s.show.apiId).toSet(),
-      orElse: () => <int>{},
-    );
-
-    int validCount = 0;
-    while (validCount < 15 && _page <= 10) {
-      final results = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
-      if (results.isEmpty) break;
-      _results.addAll(results);
-      validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
-      if (validCount < 15) _page++;
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _isLoading = false;
-    });
-  }
-
-  void _onSearchChanged(String query) {
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      if (query.trim().isEmpty) {
-        _loadTrending();
-        return;
-      }
+    try {
       setState(() {
         _isLoading = true;
         _page = 1;
         _results.clear();
       });
-      
+
       final libraryAsync = ref.read(libraryProvider);
       final localApiIds = libraryAsync.maybeWhen(
         data: (data) => data.map((s) => s.show.apiId).toSet(),
@@ -140,18 +112,61 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
       int validCount = 0;
       while (validCount < 15 && _page <= 10) {
-        final results = await TmdbService.search(query, page: _page);
+        final results = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
         if (results.isEmpty) break;
-        final filteredNew = results.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
-        _results.addAll(filteredNew);
+        _results.addAll(results);
         validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
         if (validCount < 15) _page++;
       }
-      
-      if (!mounted) return;
-      setState(() {
-        _isLoading = false;
-      });
+    } catch (e) {
+      debugPrint('Error loading trending: $e');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        if (query.trim().isEmpty) {
+          _loadTrending();
+          return;
+        }
+        setState(() {
+          _isLoading = true;
+          _page = 1;
+          _results.clear();
+        });
+        
+        final libraryAsync = ref.read(libraryProvider);
+        final localApiIds = libraryAsync.maybeWhen(
+          data: (data) => data.map((s) => s.show.apiId).toSet(),
+          orElse: () => <int>{},
+        );
+
+        int validCount = 0;
+        while (validCount < 15 && _page <= 10) {
+          final results = await TmdbService.search(query, page: _page);
+          if (results.isEmpty) break;
+          final filteredNew = results.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
+          _results.addAll(filteredNew);
+          validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
+          if (validCount < 15) _page++;
+        }
+      } catch (e) {
+        debugPrint('Error searching: $e');
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
     });
   }
 
@@ -166,7 +181,8 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(notificationsProvider);
-    final localApiIds = ref.watch(showsProvider).value?.map((s) => s.apiId).toSet() ?? {};
+    final showsAsync = ref.watch(showsProvider);
+    final localApiIds = showsAsync.asData?.value.map((s) => s.apiId).toSet() ?? {};
     final filteredResults = _results.where((item) => !localApiIds.contains(item['id'])).toList();
 
     return Scaffold(
@@ -180,7 +196,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
               isLabelVisible: notifications.isNotEmpty,
               alignment: Alignment.topRight,
               child: IconButton(
-                icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                icon: Icon(Icons.notifications_rounded, color: AppTheme.primary),
                 onPressed: () => Scaffold.of(context).openEndDrawer(),
               ),
             ),
@@ -199,7 +215,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
               decoration: InputDecoration(
                 hintText: 'Search for movies, TV shows...',
                 hintStyle: const TextStyle(color: AppTheme.textMuted),
-                prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary),
+                prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
                 filled: true,
                 fillColor: AppTheme.surfaceLight,
                 border: OutlineInputBorder(
@@ -264,7 +280,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
             // Results Section
             Expanded(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
+                  ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
                   : filteredResults.isEmpty
                       ? const Center(child: Text('No results found (or all are in your library).', style: TextStyle(color: AppTheme.textMuted)))
                       : GridView.builder(

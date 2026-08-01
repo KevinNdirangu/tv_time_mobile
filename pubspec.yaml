@@ -42,6 +42,12 @@ dependencies:
   url_launcher: ^6.3.2
   shared_preferences: ^2.5.5
   confetti: ^0.8.0
+  file_picker: ^8.1.7
+  share_plus: ^10.1.4
+  csv: ^6.0.0
+  permission_handler: ^11.3.1
+  path_provider: ^2.1.5
+  path: ^1.9.0
 
 dev_dependencies:
   flutter_test:

@@ -72,7 +72,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               isLabelVisible: notifications.isNotEmpty,
               alignment: Alignment.topRight,
               child: IconButton(
-                icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                icon: Icon(Icons.notifications_rounded, color: AppTheme.primary),
                 onPressed: () => Scaffold.of(context).openEndDrawer(),
               ),
             ),
@@ -194,7 +194,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+        loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
         error: (err, _) => Center(child: Text('Error loading calendar: $err')),
       ),
     );
@@ -292,7 +292,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
               ),
               child: Text(
                 diffText,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppTheme.primary,
                   fontSize: 9,
                   fontWeight: FontWeight.w900,
@@ -366,7 +366,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   ),
                   Text(
                     subtitleText,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppTheme.primary,
                       fontSize: 10,
                       fontWeight: FontWeight.bold,

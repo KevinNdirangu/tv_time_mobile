@@ -34,7 +34,7 @@ class NotificationsDrawer extends ConsumerWidget {
                       onPressed: () {
                         ref.read(notificationsProvider.notifier).clearAll();
                       },
-                      child: const Text('Clear All', style: TextStyle(color: AppTheme.primary)),
+                      child: Text('Clear All', style: TextStyle(color: AppTheme.primary)),
                     ),
                 ],
               ),
@@ -87,7 +87,7 @@ class NotificationsDrawer extends ConsumerWidget {
                                 const SizedBox(height: 4),
                                 Text(notif.body, style: const TextStyle(color: AppTheme.textMuted)),
                                 const SizedBox(height: 4),
-                                Text(DateFormat('MMM d, h:mm a').format(notif.timestamp), style: const TextStyle(color: AppTheme.primary, fontSize: 10)),
+                                Text(DateFormat('MMM d, h:mm a').format(notif.timestamp), style: TextStyle(color: AppTheme.primary, fontSize: 10)),
                               ],
                             ),
                             isThreeLine: true,

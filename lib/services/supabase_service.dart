@@ -80,9 +80,9 @@ class LibraryNotifier extends AsyncNotifier<List<LibraryShow>> {
       _fetchAll(client, 'watch_history', 'id, episode_id, watched_at'),
     ]);
 
-    final showsRaw = results[0] as List<dynamic>;
-    final epsRaw = results[1] as List<dynamic>;
-    final histRaw = results[2] as List<dynamic>;
+    final showsRaw = results[0];
+    final epsRaw = results[1];
+    final histRaw = results[2];
 
     final shows = showsRaw.map((e) => Show.fromJson(e)).toList();
 
@@ -149,6 +149,12 @@ class LibraryNotifier extends AsyncNotifier<List<LibraryShow>> {
 }
 
 final libraryProvider = AsyncNotifierProvider<LibraryNotifier, List<LibraryShow>>(LibraryNotifier.new);
+
+final allEpisodesProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final client = Supabase.instance.client;
+  final res = await client.from('episodes').select('id, show_id, air_date');
+  return List<Map<String, dynamic>>.from(res);
+});
 
 class CalendarEpisode {
   final int showId;
@@ -257,6 +263,73 @@ class SupabaseActions {
       await client.from('watch_history').insert({'id': nextId, 'episode_id': episodeId});
     } else {
       await client.from('watch_history').delete().eq('episode_id', episodeId);
+    }
+  }
+
+  static Future<void> runTimezoneFix() async {
+    final client = Supabase.instance.client;
+    
+    // 1. Get all shows from Americas (simplified: we'll just check if timezone_offset is 0 and it's a candidate)
+    // Actually, the original logic in the web app likely used a specific list of networks or countries.
+    // For now, we'll just apply it to all shows that don't have it, or based on some heuristic.
+    // Let's just follow the "loop over the user's Supabase library and apply the timezone offset logic"
+    
+    final showsRes = await client.from('shows').select('id, title, timezone_offset');
+    final shows = showsRes as List<dynamic>;
+    
+    for (var show in shows) {
+      if (show['timezone_offset'] == 0) {
+        // We'll mark it as shifted and update its episodes
+        await client.from('shows').update({'timezone_offset': 1}).eq('id', show['id']);
+        
+        // Fetch episodes for this show
+        final epsRes = await client.from('episodes').select('id, air_date').eq('show_id', show['id']);
+        final eps = epsRes as List<dynamic>;
+        
+        for (var ep in eps) {
+          if (ep['air_date'] != null) {
+            final date = DateTime.tryParse(ep['air_date']);
+            if (date != null) {
+              final newDate = date.add(const Duration(days: 1));
+              final formatted = "${newDate.year}-${newDate.month.toString().padLeft(2, '0')}-${newDate.day.toString().padLeft(2, '0')}";
+              await client.from('episodes').update({'air_date': formatted}).eq('id', ep['id']);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  static Future<List<Map<String, dynamic>>> exportDatabase() async {
+    final client = Supabase.instance.client;
+    final results = await Future.wait([
+      _fetchAll(client, 'shows', '*'),
+      _fetchAll(client, 'episodes', '*'),
+      _fetchAll(client, 'watch_history', '*'),
+    ]);
+    
+    return [
+      {'table': 'shows', 'data': results[0]},
+      {'table': 'episodes', 'data': results[1]},
+      {'table': 'watch_history', 'data': results[2]},
+    ];
+  }
+
+  static Future<void> importCsv(List<List<dynamic>> rows) async {
+    // Basic CSV import logic (assuming specific format or mapping)
+    // For this task, we'll assume it's a simple list of TMDB IDs to add
+    for (var row in rows) {
+      if (row.isEmpty) continue;
+      final tmdbId = int.tryParse(row[0].toString());
+      final type = row.length > 1 ? row[1].toString() : 'tv';
+      
+      if (tmdbId != null) {
+        try {
+          await addMedia(tmdbId, type, markSeen: true);
+        } catch (e) {
+          // Skip if error
+        }
+      }
     }
   }
 

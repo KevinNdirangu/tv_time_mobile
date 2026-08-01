@@ -32,7 +32,7 @@ class GlobalNavigationDrawer extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(24.0),
               alignment: Alignment.centerLeft,
-              child: const Text('TV Time', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+              child: Text('TV Time', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primary)),
             ),
             const Divider(color: AppTheme.surfaceLight, height: 1),
             buildItem(Icons.dashboard_rounded, 'Dashboard', 0),

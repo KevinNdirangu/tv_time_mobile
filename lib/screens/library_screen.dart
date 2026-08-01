@@ -39,7 +39,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
               isLabelVisible: notifications.isNotEmpty,
               alignment: Alignment.topRight,
               child: IconButton(
-                icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                icon: Icon(Icons.notifications_rounded, color: AppTheme.primary),
                 onPressed: () => Scaffold.of(context).openEndDrawer(),
               ),
             ),
@@ -62,7 +62,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                   decoration: InputDecoration(
                     hintText: 'Search library...',
                     hintStyle: const TextStyle(color: AppTheme.textMuted),
-                    prefixIcon: const Icon(Icons.search_rounded, color: AppTheme.primary),
+                    prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
                     filled: true,
                     fillColor: AppTheme.surfaceLight,
                     border: OutlineInputBorder(
@@ -161,7 +161,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             ],
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator(color: AppTheme.primary)),
+        loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
         error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );

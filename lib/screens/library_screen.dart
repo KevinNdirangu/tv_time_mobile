@@ -199,19 +199,26 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                   ],
                                 ),
                               )
-                            : GridView.builder(
-                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-                                physics: const BouncingScrollPhysics(),
-                                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  childAspectRatio: 0.62,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 16,
-                                ),
-                                itemCount: filtered.length,
-                                itemBuilder: (context, index) {
-                                  return _buildLibraryCard(filtered[index]);
+                            : RefreshIndicator(
+                                color: AppTheme.primary,
+                                onRefresh: () async {
+                                  ref.invalidate(libraryProvider);
+                                  await ref.read(libraryProvider.future);
                                 },
+                                child: GridView.builder(
+                                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 3,
+                                    childAspectRatio: 0.62,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 16,
+                                  ),
+                                  itemCount: filtered.length,
+                                  itemBuilder: (context, index) {
+                                    return _buildLibraryCard(filtered[index]);
+                                  },
+                                ),
                               ),
                       ),
                     ],

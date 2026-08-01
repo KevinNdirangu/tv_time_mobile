@@ -339,10 +339,19 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                             ],
                           ),
                         )
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
-                          controller: _scrollController,
-                          physics: const BouncingScrollPhysics(),
+                      : RefreshIndicator(
+                          color: AppTheme.primary,
+                          onRefresh: () async {
+                            if (_searchController.text.trim().isEmpty) {
+                              await _loadTrending();
+                            } else {
+                              _onSearchChanged(_searchController.text);
+                            }
+                          },
+                          child: GridView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+                            controller: _scrollController,
+                            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
                             childAspectRatio: 0.65,
@@ -490,6 +499,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                             );
                           },
                         ),
+                      ),
             ),
           ],
         ),

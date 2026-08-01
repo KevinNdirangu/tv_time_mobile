@@ -57,8 +57,19 @@ class DashboardScreen extends ConsumerWidget {
             final recentMovies = libraryData.where((s) => s.show.type == 'movie' && s.watchedEpisodes == 0).toList();
             recentMovies.sort((a, b) => b.show.id.compareTo(a.show.id));
 
-            return CustomScrollView(
-              slivers: [
+            return RefreshIndicator(
+              color: AppTheme.primary,
+              onRefresh: () async {
+                ref.invalidate(libraryProvider);
+                ref.invalidate(calendarProvider);
+                await Future.wait([
+                  ref.read(libraryProvider.future),
+                  ref.read(calendarProvider.future),
+                ]);
+              },
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                slivers: [
                 // Premium Header
                 SliverToBoxAdapter(
                   child: Padding(
@@ -200,6 +211,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                 ),
               ],
+            ),
             );
           },
           loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),

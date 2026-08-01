@@ -8,7 +8,7 @@ class NotificationService {
   static void Function(String?)? onNotificationClick;
 
   static Future<void> initialize() async {
-    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('ic_notification');
     
     // We don't need iOS for this specific Android project, but good practice
     const DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
@@ -56,7 +56,7 @@ class NotificationService {
       channelDescription: 'Notifications for new episodes airing today',
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
+      icon: 'ic_notification',
     );
 
     const NotificationDetails platformChannelSpecifics = NotificationDetails(

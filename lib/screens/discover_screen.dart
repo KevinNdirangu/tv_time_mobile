@@ -181,8 +181,8 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(notificationsProvider);
-    final showsAsync = ref.watch(showsProvider);
-    final localApiIds = showsAsync.asData?.value.map((s) => s.apiId).toSet() ?? {};
+    final libraryAsync = ref.watch(libraryProvider);
+    final localApiIds = libraryAsync.asData?.value.map((s) => s.show.apiId).toSet() ?? {};
     final filteredResults = _results.where((item) => !localApiIds.contains(item['id'])).toList();
 
     return Scaffold(

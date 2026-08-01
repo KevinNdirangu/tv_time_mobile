@@ -1,30 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
+import '../providers/notifications_provider.dart';
+import 'package:intl/intl.dart';
 
-class NotificationsDrawer extends StatefulWidget {
+class NotificationsDrawer extends ConsumerWidget {
   const NotificationsDrawer({super.key});
 
   @override
-  State<NotificationsDrawer> createState() => _NotificationsDrawerState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifications = ref.watch(notificationsProvider);
 
-class _NotificationsDrawerState extends State<NotificationsDrawer> {
-  // Dummy notifications for now
-  List<Map<String, String>> notifications = [
-    {
-      'title': 'Welcome to TV Time!',
-      'body': 'Track your favorite shows and movies.',
-      'time': 'Just now',
-    },
-    {
-      'title': 'New Episode Aired',
-      'body': 'The Boys S04E01 is now available.',
-      'time': '2 hours ago',
-    }
-  ];
-
-  @override
-  Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: AppTheme.background,
       child: SafeArea(
@@ -46,9 +32,7 @@ class _NotificationsDrawerState extends State<NotificationsDrawer> {
                   if (notifications.isNotEmpty)
                     TextButton(
                       onPressed: () {
-                        setState(() {
-                          notifications.clear();
-                        });
+                        ref.read(notificationsProvider.notifier).clearAll();
                       },
                       child: const Text('Clear All', style: TextStyle(color: AppTheme.primary)),
                     ),
@@ -68,22 +52,46 @@ class _NotificationsDrawerState extends State<NotificationsDrawer> {
                       itemCount: notifications.length,
                       itemBuilder: (context, index) {
                         final notif = notifications[index];
-                        return ListTile(
-                          leading: const CircleAvatar(
-                            backgroundColor: AppTheme.surfaceLight,
-                            child: Icon(Icons.notifications, color: AppTheme.primary),
+                        return Dismissible(
+                          key: Key(notif.id),
+                          background: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.only(left: 20),
+                            child: const Icon(Icons.delete, color: Colors.white),
                           ),
-                          title: Text(notif['title']!, style: const TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold)),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const SizedBox(height: 4),
-                              Text(notif['body']!, style: const TextStyle(color: AppTheme.textMuted)),
-                              const SizedBox(height: 4),
-                              Text(notif['time']!, style: const TextStyle(color: AppTheme.primary, fontSize: 10)),
-                            ],
+                          secondaryBackground: Container(
+                            color: Colors.red,
+                            alignment: Alignment.centerRight,
+                            padding: const EdgeInsets.only(right: 20),
+                            child: const Icon(Icons.delete, color: Colors.white),
                           ),
-                          isThreeLine: true,
+                          onDismissed: (direction) {
+                            ref.read(notificationsProvider.notifier).dismiss(notif.id);
+                          },
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: AppTheme.surfaceLight,
+                              child: Icon(
+                                notif.type == 'airing' ? Icons.calendar_today
+                                  : notif.type == 'news' ? Icons.campaign
+                                  : Icons.notifications,
+                                color: AppTheme.primary,
+                                size: 18,
+                              ),
+                            ),
+                            title: Text(notif.title, style: const TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold)),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 4),
+                                Text(notif.body, style: const TextStyle(color: AppTheme.textMuted)),
+                                const SizedBox(height: 4),
+                                Text(DateFormat('MMM d, h:mm a').format(notif.timestamp), style: const TextStyle(color: AppTheme.primary, fontSize: 10)),
+                              ],
+                            ),
+                            isThreeLine: true,
+                          ),
                         );
                       },
                     ),

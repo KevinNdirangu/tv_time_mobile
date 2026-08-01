@@ -5,6 +5,7 @@ import '../models/library_show.dart';
 import '../theme/app_theme.dart';
 import 'show_details_screen.dart';
 import 'notifications_drawer.dart';
+import '../providers/notifications_provider.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
@@ -24,6 +25,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     final libraryAsync = ref.watch(libraryProvider);
+    final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
       endDrawer: const NotificationsDrawer(),
@@ -31,9 +33,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         title: const Text('Library', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
-              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            builder: (context) => Badge(
+              isLabelVisible: notifications.isNotEmpty,
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+              ),
             ),
           ),
         ],

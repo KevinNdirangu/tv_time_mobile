@@ -6,6 +6,7 @@ import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import 'notifications_drawer.dart';
 import 'show_details_screen.dart';
+import '../providers/notifications_provider.dart';
 
 class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
@@ -57,6 +58,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final calendarAsync = ref.watch(calendarProvider);
+    final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
       endDrawer: const NotificationsDrawer(),
@@ -64,9 +66,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         title: const Text('Calendar', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
-              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            builder: (context) => Badge(
+              isLabelVisible: notifications.isNotEmpty,
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+              ),
             ),
           ),
         ],

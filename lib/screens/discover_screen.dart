@@ -6,6 +6,7 @@ import '../services/tmdb_service.dart';
 import '../services/supabase_service.dart';
 import 'show_details_screen.dart';
 import 'notifications_drawer.dart';
+import '../providers/notifications_provider.dart';
 
 class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
@@ -163,13 +164,8 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final libraryAsync = ref.watch(libraryProvider);
-    final localApiIds = libraryAsync.maybeWhen(
-      data: (data) => data.map((s) => s.show.apiId).toSet(),
-      orElse: () => <int>{},
-    );
-
-    // Filter results to remove items already in the library
+    final notifications = ref.watch(notificationsProvider);
+    final localApiIds = ref.watch(showsProvider).value?.map((s) => s.apiId).toSet() ?? {};
     final filteredResults = _results.where((item) => !localApiIds.contains(item['id'])).toList();
 
     return Scaffold(
@@ -178,9 +174,13 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         title: const Text('Discover', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
-              onPressed: () => Scaffold.of(context).openEndDrawer(),
+            builder: (context) => Badge(
+              isLabelVisible: notifications.isNotEmpty,
+              alignment: Alignment.topRight,
+              child: IconButton(
+                icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                onPressed: () => Scaffold.of(context).openEndDrawer(),
+              ),
             ),
           ),
         ],

@@ -6,6 +6,7 @@ import '../models/library_show.dart';
 import '../theme/app_theme.dart';
 import 'show_details_screen.dart';
 import 'notifications_drawer.dart';
+import '../providers/notifications_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -14,6 +15,7 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final libraryAsync = ref.watch(libraryProvider);
     final calendarAsync = ref.watch(calendarProvider);
+    final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
       endDrawer: const NotificationsDrawer(),
@@ -102,9 +104,13 @@ class DashboardScreen extends ConsumerWidget {
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(color: Colors.white10),
                             ),
-                            child: IconButton(
-                              icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
-                              onPressed: () => Scaffold.of(context).openEndDrawer(),
+                            child: Badge(
+                              isLabelVisible: notifications.isNotEmpty,
+                              alignment: Alignment.topRight,
+                              child: IconButton(
+                                icon: const Icon(Icons.notifications_rounded, color: AppTheme.primary),
+                                onPressed: () => Scaffold.of(context).openEndDrawer(),
+                              ),
                             ),
                           ),
                         ),

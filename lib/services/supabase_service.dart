@@ -73,3 +73,55 @@ final calendarProvider = FutureProvider<List<CalendarEpisode>>((ref) async {
   
   return calendar;
 });
+
+class SupabaseShowDetails {
+  final Show show;
+  final List<Map<String, dynamic>> episodes;
+  final List<int> watchedEpisodeIds;
+
+  SupabaseShowDetails({
+    required this.show,
+    required this.episodes,
+    required this.watchedEpisodeIds,
+  });
+}
+
+class SupabaseActions {
+  static Future<SupabaseShowDetails?> getShowDetails(int tmdbId) async {
+    final client = Supabase.instance.client;
+    
+    // Check if show exists
+    final showRes = await client.from('shows').select('*').eq('api_id', tmdbId).maybeSingle();
+    if (showRes == null) return null;
+    
+    final show = Show.fromJson(showRes);
+    
+    // Get episodes
+    final epRes = await client.from('episodes').select('id, season_number, episode_number').eq('show_id', show.id);
+    final episodes = List<Map<String, dynamic>>.from(epRes as List);
+    
+    // Get watch history
+    final epIds = episodes.map((e) => e['id']).toList();
+    if (epIds.isEmpty) {
+      return SupabaseShowDetails(show: show, episodes: episodes, watchedEpisodeIds: []);
+    }
+    
+    // Chunking might be needed for very large arrays, but in in operator 200-300 is fine
+    final watchRes = await client.from('watch_history').select('episode_id').filter('episode_id', 'in', epIds);
+    final watchedIds = (watchRes as List).map((e) => e['episode_id'] as int).toList();
+    
+    return SupabaseShowDetails(show: show, episodes: episodes, watchedEpisodeIds: watchedIds);
+  }
+
+  static Future<void> toggleWatched(int episodeId, bool isWatched) async {
+    final client = Supabase.instance.client;
+    if (isWatched) {
+      // Find next ID
+      final maxIdRes = await client.from('watch_history').select('id').order('id', ascending: false).limit(1).maybeSingle();
+      int nextId = (maxIdRes != null ? maxIdRes['id'] as int : 0) + 1;
+      await client.from('watch_history').insert({'id': nextId, 'episode_id': episodeId});
+    } else {
+      await client.from('watch_history').delete().eq('episode_id', episodeId);
+    }
+  }
+}

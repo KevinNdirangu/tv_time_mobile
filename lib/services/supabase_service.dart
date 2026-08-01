@@ -315,6 +315,85 @@ class SupabaseActions {
     ];
   }
 
+  /// Generates an ICS calendar string — mirrors api/calendar.js exactly.
+  /// Fetches episodes from the past 30 days onwards for all active (non-stopped) shows.
+  static Future<String> generateIcs() async {
+    final client = Supabase.instance.client;
+
+    final pastDate = DateTime.now().subtract(const Duration(days: 30));
+    final fromDate = '${pastDate.year.toString().padLeft(4, '0')}-'
+        '${pastDate.month.toString().padLeft(2, '0')}-'
+        '${pastDate.day.toString().padLeft(2, '0')}';
+
+    // Fetch episodes from past 30 days onwards
+    final epRes = await client
+        .from('episodes')
+        .select('id, show_id, season_number, episode_number, title, air_date')
+        .gte('air_date', fromDate)
+        .order('air_date', ascending: true)
+        .limit(500);
+
+    // Fetch active (non-stopped) shows
+    final showsRes = await client
+        .from('shows')
+        .select('id, title, is_stopped')
+        .eq('is_stopped', 0);
+
+    final showMap = <int, Map<String, dynamic>>{};
+    for (var s in showsRes as List) {
+      showMap[s['id'] as int] = Map<String, dynamic>.from(s);
+    }
+
+    final calData = (epRes as List)
+        .where((e) => showMap.containsKey(e['show_id'] as int) && e['air_date'] != null)
+        .toList();
+
+    if (calData.isEmpty) return '';
+
+    final now = DateTime.now().toUtc();
+    final dtstamp = '${now.year.toString().padLeft(4, '0')}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}T'
+        '${now.hour.toString().padLeft(2, '0')}'
+        '${now.minute.toString().padLeft(2, '0')}'
+        '${now.second.toString().padLeft(2, '0')}Z';
+
+    final buf = StringBuffer();
+    buf.write('BEGIN:VCALENDAR\r\n');
+    buf.write('VERSION:2.0\r\n');
+    buf.write('PRODID:-//TV Tracker//EN\r\n');
+    buf.write('CALSCALE:GREGORIAN\r\n');
+    buf.write('METHOD:PUBLISH\r\n');
+    buf.write('X-WR-CALNAME:TV Time Tracker\r\n');
+    buf.write('X-WR-TIMEZONE:UTC\r\n');
+
+    for (var ep in calData) {
+      final airDate = ep['air_date'] as String;
+      final dtStart = airDate.replaceAll('-', '');
+
+      final parts = airDate.split('-');
+      final d = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+      final nextDay = d.add(const Duration(days: 1));
+      final dtEnd = '${nextDay.year.toString().padLeft(4, '0')}'
+          '${nextDay.month.toString().padLeft(2, '0')}'
+          '${nextDay.day.toString().padLeft(2, '0')}';
+
+      final show = showMap[ep['show_id'] as int]!;
+      final summary = '${show['title']} - ${ep['season_number']}x${ep['episode_number']} - ${ep['title'] ?? 'TBA'}';
+
+      buf.write('BEGIN:VEVENT\r\n');
+      buf.write('UID:${ep['id']}@tvtracker\r\n');
+      buf.write('DTSTAMP:$dtstamp\r\n');
+      buf.write('DTSTART;VALUE=DATE:$dtStart\r\n');
+      buf.write('DTEND;VALUE=DATE:$dtEnd\r\n');
+      buf.write('SUMMARY:$summary\r\n');
+      buf.write('END:VEVENT\r\n');
+    }
+
+    buf.write('END:VCALENDAR');
+    return buf.toString();
+  }
+
   static Future<void> importCsv(List<List<dynamic>> rows) async {
     // Basic CSV import logic (assuming specific format or mapping)
     // For this task, we'll assume it's a simple list of TMDB IDs to add

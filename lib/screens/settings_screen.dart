@@ -20,6 +20,11 @@ import '../main.dart';
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
+  // This matches the URL pattern used by api/calendar.js on the website.
+  // Since the mobile app can't host a server, the subscribe feature opens Google Calendar
+  // with this URL, and the download generates the ICS locally from Supabase.
+  static const String _calendarUrl = 'https://gnwzertrmjerymlzzfuh.supabase.co/rest/v1/rpc/get_calendar_ics?apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdud3plcnRybWplcnltbHp6ZnVoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUwODU5MTIsImV4cCI6MjEwMDY2MTkxMn0.4Y8p6Um7qH8OUS6pAVpQDPxJ9d_wguqVKjnDiWESEZs';
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifications = ref.watch(notificationsProvider);
@@ -314,17 +319,18 @@ class SettingsScreen extends ConsumerWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.cloud_sync_rounded, color: AppTheme.primary, size: 20),
+                      Icon(Icons.event_rounded, color: AppTheme.primary, size: 20),
                       const SizedBox(width: 8),
                       const Text('Cloud Calendar Subscription', style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold)),
                     ],
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Copy this URL into Google Calendar or Apple Calendar using the "Add from URL" option.',
+                    'Copy this URL into Google Calendar or Apple Calendar using the "Add from URL" option. This feed auto-updates directly from your cloud database.',
                     style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  // URL display box — same as the website's readonly input
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -333,49 +339,76 @@ class SettingsScreen extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.white24),
                     ),
-                    child: const Text('https://gnwzertrmjerymlzzfuh.supabase.co/functions/v1/calendar?user_id=global&ext=.ics', style: TextStyle(color: Colors.white, fontSize: 11)),
+                    child: SelectableText(
+                      _calendarUrl,
+                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  // Row 1: Copy URL + Subscribe in Google Calendar
                   Row(
                     children: [
-                      Expanded(child: buildButton('Copy URL', const Color(0xFF333333), () {
-                        Clipboard.setData(const ClipboardData(text: 'https://gnwzertrmjerymlzzfuh.supabase.co/functions/v1/calendar?user_id=global&ext=.ics'));
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('URL copied to clipboard!')));
-                      })),
-                      const SizedBox(width: 8),
-                      Expanded(child: buildButton('Subscribe', const Color(0xFF34c759), () async {
-                        const baseUrl = 'gnwzertrmjerymlzzfuh.supabase.co/functions/v1/calendar?user_id=global';
-                        // Add .ics extension to help apps recognize the file type
-                        const fullUrl = 'https://$baseUrl&ext=.ics';
-                        const webcalUrl = 'webcal://$baseUrl&ext=.ics';
-                        
-                        // Google Calendar specific subscription link
-                        final googleUrl = 'https://calendar.google.com/calendar/render?cid=${Uri.encodeComponent(webcalUrl)}';
-
-                        try {
-                          // 1. Try to launch as a webcal link (triggers Calendar apps directly)
-                          bool launched = await launchUrl(
-                            Uri.parse(webcalUrl),
-                            mode: LaunchMode.externalApplication,
+                      Expanded(
+                        child: buildButton('Copy URL', const Color(0xFF333333), () {
+                          Clipboard.setData(ClipboardData(text: _calendarUrl));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('URL Copied! Add this to your calendar app.')),
                           );
-
-                          if (!launched) {
-                            // 2. Fallback to Google Calendar website
+                        }),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: buildButton('Subscribe in Google Calendar', const Color(0xFF34c759), () async {
+                          // Match website exactly: webcal:// URL -> Google Calendar subscription
+                          final webcalUrl = _calendarUrl
+                              .replaceFirst('https://', 'webcal://')
+                              .replaceFirst('http://', 'webcal://');
+                          final googleCalUrl = 'https://calendar.google.com/calendar/u/0/r?cid=${Uri.encodeComponent(webcalUrl)}';
+                          
+                          try {
                             await launchUrl(
-                              Uri.parse(googleUrl),
+                              Uri.parse(googleCalUrl),
                               mode: LaunchMode.externalApplication,
                             );
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Could not open Google Calendar: $e')),
+                            );
                           }
-                        } catch (e) {
-                          // 3. Final fallback: open in browser
-                          await launchUrl(
-                            Uri.parse(fullUrl),
-                            mode: LaunchMode.externalApplication,
-                          );
-                        }
-                      })),
+                        }),
+                      ),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  // Row 2: Download .ics (generate locally, same as website's exportCalendar)
+                  buildButton('Download .ics File', const Color(0xFF0a84ff), () async {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Generating calendar...')),
+                    );
+                    try {
+                      final icsContent = await SupabaseActions.generateIcs();
+                      if (icsContent.isEmpty) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Calendar is empty or failed to load.')),
+                        );
+                        return;
+                      }
+                      final directory = await getTemporaryDirectory();
+                      final file = File('${directory.path}/tvtracker.ics');
+                      await file.writeAsString(icsContent);
+                      await Share.shareXFiles(
+                        [XFile(file.path, mimeType: 'text/calendar')],
+                        text: 'TV Time Calendar (.ics)',
+                      );
+                    } catch (e) {
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Export failed: $e')),
+                      );
+                    }
+                  }),
                 ],
               ),
             ),

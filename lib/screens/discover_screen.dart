@@ -1,17 +1,19 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_theme.dart';
 import '../services/tmdb_service.dart';
+import '../services/supabase_service.dart';
 import 'show_details_screen.dart';
 
-class DiscoverScreen extends StatefulWidget {
+class DiscoverScreen extends ConsumerStatefulWidget {
   const DiscoverScreen({super.key});
 
   @override
-  State<DiscoverScreen> createState() => _DiscoverScreenState();
+  ConsumerState<DiscoverScreen> createState() => _DiscoverScreenState();
 }
 
-class _DiscoverScreenState extends State<DiscoverScreen> {
+class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _debounce;
   List<dynamic> _results = [];
@@ -78,6 +80,15 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final libraryAsync = ref.watch(libraryProvider);
+    final localApiIds = libraryAsync.maybeWhen(
+      data: (data) => data.map((s) => s.show.apiId).toSet(),
+      orElse: () => <int>{},
+    );
+
+    // Filter results to remove items already in the library
+    final filteredResults = _results.where((item) => !localApiIds.contains(item['id'])).toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Discover', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -160,8 +171,8 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator(color: AppTheme.primary))
-                  : _results.isEmpty
-                      ? const Center(child: Text('No results found.', style: TextStyle(color: AppTheme.textMuted)))
+                  : filteredResults.isEmpty
+                      ? const Center(child: Text('No results found (or all are in your library).', style: TextStyle(color: AppTheme.textMuted)))
                       : GridView.builder(
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
@@ -169,9 +180,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                             crossAxisSpacing: 10,
                             mainAxisSpacing: 10,
                           ),
-                          itemCount: _results.length,
+                          itemCount: filteredResults.length,
                           itemBuilder: (context, index) {
-                            final item = _results[index];
+                            final item = filteredResults[index];
                             final title = item['title'] ?? item['name'] ?? 'Unknown';
                             final posterPath = item['poster_path'];
                             

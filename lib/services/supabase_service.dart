@@ -17,14 +17,30 @@ final showsProvider = FutureProvider<List<Show>>((ref) async {
   return (response as List<dynamic>).map((e) => Show.fromJson(e)).toList();
 });
 
+Future<List<dynamic>> _fetchAll(SupabaseClient client, String table, String selectColumns) async {
+  int step = 1000;
+  int from = 0;
+  List<dynamic> allData = [];
+  
+  while (true) {
+    final response = await client.from(table).select(selectColumns).range(from, from + step - 1);
+    final data = response as List<dynamic>;
+    allData.addAll(data);
+    if (data.length < step) break;
+    from += step;
+  }
+  
+  return allData;
+}
+
 final libraryProvider = FutureProvider<List<LibraryShow>>((ref) async {
   final client = ref.read(supabaseClientProvider);
   
   // Fetch all data in parallel
   final results = await Future.wait([
-    client.from('shows').select('*'),
-    client.from('episodes').select('id, show_id, season_number, runtime, air_date'),
-    client.from('watch_history').select('id, episode_id, watched_at'),
+    _fetchAll(client, 'shows', '*'),
+    _fetchAll(client, 'episodes', 'id, show_id, season_number, runtime, air_date'),
+    _fetchAll(client, 'watch_history', 'id, episode_id, watched_at'),
   ]);
 
   final showsRaw = results[0] as List<dynamic>;

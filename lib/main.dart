@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+import 'theme/app_theme.dart';
+import 'screens/main_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,34 +24,10 @@ class TvTimeApp extends StatelessWidget {
     return MaterialApp(
       title: 'TV Time',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF0a0a0a),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF00ffcc),
-          surface: Color(0xFF111111),
-        ),
-        textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
-      ),
-      home: const MainScaffold(),
+      theme: AppTheme.darkTheme,
+      home: const MainScreen(),
     );
   }
 }
 
-class MainScaffold extends StatelessWidget {
-  const MainScaffold({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('TV Time'),
-        backgroundColor: const Color(0xFF0a0a0a),
-      ),
-      body: const Center(
-        child: Text('TV Time Mobile Initialized!'),
-      ),
-    );
-  }
-}

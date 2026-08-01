@@ -1,39 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'dashboard_screen.dart';
 import 'library_screen.dart';
 import 'calendar_screen.dart';
 import 'discover_screen.dart';
+import 'statistics_screen.dart';
+import 'settings_screen.dart';
 import 'notifications_drawer.dart';
+import 'navigation_drawer.dart';
+import '../providers/navigation_provider.dart';
 
-class MainScreen extends StatefulWidget {
+class MainScreen extends ConsumerWidget {
   const MainScreen({super.key});
-
-  @override
-  State<MainScreen> createState() => _MainScreenState();
-}
-
-class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
 
   final List<Widget> _screens = const [
     DashboardScreen(),
     DiscoverScreen(),
     CalendarScreen(),
     LibraryScreen(),
+    StatisticsScreen(),
+    SettingsScreen(),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentIndex = ref.watch(currentTabProvider);
+
     return Scaffold(
+      drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
-      body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
+      body: _screens[currentIndex],
+      bottomNavigationBar: currentIndex < 4 ? BottomNavigationBar(
+        currentIndex: currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          ref.read(currentTabProvider.notifier).state = index;
         },
         items: const [
           BottomNavigationBarItem(
@@ -53,7 +54,7 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Library',
           ),
         ],
-      ),
+      ) : null,
     );
   }
 }

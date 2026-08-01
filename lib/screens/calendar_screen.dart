@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
 import 'notifications_drawer.dart';
+import 'navigation_drawer.dart';
 import 'show_details_screen.dart';
 import '../providers/notifications_provider.dart';
 
@@ -61,6 +62,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
+      drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
       appBar: AppBar(
         title: const Text('Calendar', style: TextStyle(fontWeight: FontWeight.bold)),

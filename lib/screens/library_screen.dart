@@ -5,6 +5,7 @@ import '../models/library_show.dart';
 import '../theme/app_theme.dart';
 import 'show_details_screen.dart';
 import 'notifications_drawer.dart';
+import 'navigation_drawer.dart';
 import '../providers/notifications_provider.dart';
 
 class LibraryScreen extends ConsumerStatefulWidget {
@@ -28,6 +29,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
+      drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
       appBar: AppBar(
         title: const Text('Library', style: TextStyle(fontWeight: FontWeight.bold)),

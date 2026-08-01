@@ -6,6 +6,7 @@ import '../services/tmdb_service.dart';
 import '../services/supabase_service.dart';
 import 'show_details_screen.dart';
 import 'notifications_drawer.dart';
+import 'navigation_drawer.dart';
 import '../providers/notifications_provider.dart';
 
 class DiscoverScreen extends ConsumerStatefulWidget {
@@ -169,6 +170,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     final filteredResults = _results.where((item) => !localApiIds.contains(item['id'])).toList();
 
     return Scaffold(
+      drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
       appBar: AppBar(
         title: const Text('Discover', style: TextStyle(fontWeight: FontWeight.bold)),

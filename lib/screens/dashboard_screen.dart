@@ -6,6 +6,7 @@ import '../models/library_show.dart';
 import '../theme/app_theme.dart';
 import 'show_details_screen.dart';
 import 'notifications_drawer.dart';
+import 'navigation_drawer.dart';
 import '../providers/notifications_provider.dart';
 
 class DashboardScreen extends ConsumerWidget {
@@ -18,6 +19,7 @@ class DashboardScreen extends ConsumerWidget {
     final notifications = ref.watch(notificationsProvider);
 
     return Scaffold(
+      drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
       body: SafeArea(
         child: libraryAsync.when(
@@ -65,6 +67,14 @@ class DashboardScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
+                        Builder(
+                          builder: (context) => IconButton(
+                            icon: const Icon(Icons.menu_rounded, color: AppTheme.textMain, size: 28),
+                            padding: const EdgeInsets.only(right: 12),
+                            alignment: Alignment.bottomLeft,
+                            onPressed: () => Scaffold.of(context).openDrawer(),
+                          ),
+                        ),
                         const Expanded(
                           child: Text(
                             'Welcome Back!',

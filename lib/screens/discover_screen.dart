@@ -58,19 +58,32 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
   Future<void> _loadMore() async {
     setState(() => _isLoadingMore = true);
-    _page++;
     
-    List<dynamic> newResults = [];
-    if (_searchController.text.trim().isEmpty) {
-      newResults = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
-    } else {
-      newResults = await TmdbService.search(_searchController.text.trim(), page: _page);
-      newResults = newResults.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
+    final libraryAsync = ref.read(libraryProvider);
+    final localApiIds = libraryAsync.maybeWhen(
+      data: (data) => data.map((s) => s.show.apiId).toSet(),
+      orElse: () => <int>{},
+    );
+
+    int validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
+    final targetCount = validCount + 15;
+    
+    while (validCount < targetCount && _page <= 20) {
+      _page++;
+      List<dynamic> newResults = [];
+      if (_searchController.text.trim().isEmpty) {
+        newResults = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
+      } else {
+        newResults = await TmdbService.search(_searchController.text.trim(), page: _page);
+        newResults = newResults.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
+      }
+      if (newResults.isEmpty) break;
+      _results.addAll(newResults);
+      validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
     }
     
     if (!mounted) return;
     setState(() {
-      _results.addAll(newResults);
       _isLoadingMore = false;
     });
   }
@@ -79,11 +92,26 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     setState(() {
       _isLoading = true;
       _page = 1;
+      _results.clear();
     });
-    final results = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
+
+    final libraryAsync = ref.read(libraryProvider);
+    final localApiIds = libraryAsync.maybeWhen(
+      data: (data) => data.map((s) => s.show.apiId).toSet(),
+      orElse: () => <int>{},
+    );
+
+    int validCount = 0;
+    while (validCount < 15 && _page <= 10) {
+      final results = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
+      if (results.isEmpty) break;
+      _results.addAll(results);
+      validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
+      if (validCount < 15) _page++;
+    }
+
     if (!mounted) return;
     setState(() {
-      _results = results;
       _isLoading = false;
     });
   }
@@ -98,11 +126,27 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       setState(() {
         _isLoading = true;
         _page = 1;
+        _results.clear();
       });
-      final results = await TmdbService.search(query, page: _page);
+      
+      final libraryAsync = ref.read(libraryProvider);
+      final localApiIds = libraryAsync.maybeWhen(
+        data: (data) => data.map((s) => s.show.apiId).toSet(),
+        orElse: () => <int>{},
+      );
+
+      int validCount = 0;
+      while (validCount < 15 && _page <= 10) {
+        final results = await TmdbService.search(query, page: _page);
+        if (results.isEmpty) break;
+        final filteredNew = results.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
+        _results.addAll(filteredNew);
+        validCount = _results.where((item) => !localApiIds.contains(item['id'])).length;
+        if (validCount < 15) _page++;
+      }
+      
       if (!mounted) return;
       setState(() {
-        _results = results.where((item) => item['media_type'] == 'tv' || item['media_type'] == 'movie').toList();
         _isLoading = false;
       });
     });

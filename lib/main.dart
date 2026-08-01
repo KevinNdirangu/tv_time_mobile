@@ -7,6 +7,10 @@ import 'theme/app_theme.dart';
 import 'services/widget_service.dart';
 import 'package:home_widget/home_widget.dart';
 
+import 'services/notification_service.dart';
+import 'services/background_task_service.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 final themeRebuildProvider = StateProvider<int>((ref) => 0);
 
 void main() async {
@@ -20,6 +24,29 @@ void main() async {
   await AppTheme.loadPrimaryColor();
   await WidgetService.init();
 
+  // Request Notification Permissions on Android 13+
+  await Permission.notification.request();
+
+  // Initialize Notifications
+  await NotificationService.initialize();
+  
+  // Set up click handler for notifications
+  NotificationService.onNotificationClick = (String? payload) {
+    if (payload != null) {
+       final uri = Uri.tryParse(payload);
+       if (uri != null && navigatorKey.currentState != null) {
+          _handleDeepLink(uri);
+       } else {
+          // If the app was completely killed, we need to defer routing
+          _pendingDeepLink = uri;
+       }
+    }
+  };
+
+  // Initialize and register background tasks
+  await BackgroundTaskService.initialize();
+  await BackgroundTaskService.registerDailyCheck();
+
   runApp(
     const ProviderScope(
       child: MyApp(),
@@ -28,6 +55,29 @@ void main() async {
 }
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+Uri? _pendingDeepLink;
+
+void _handleDeepLink(Uri uri) {
+  if (uri.scheme == 'tvtime') {
+    if (uri.host == 'show') {
+      if (uri.pathSegments.length >= 2) {
+        final tmdbIdStr = uri.pathSegments[0];
+        final type = uri.pathSegments[1];
+        final tmdbId = int.tryParse(tmdbIdStr);
+        if (tmdbId != null) {
+          // Push show details
+          navigatorKey.currentState?.push(
+            MaterialPageRoute(
+              builder: (context) => ShowDetailsScreen(tmdbId: tmdbId, type: type),
+            ),
+          );
+        }
+      }
+    } else if (uri.host == 'home') {
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    }
+  }
+}
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
@@ -42,27 +92,19 @@ class _MyAppState extends ConsumerState<MyApp> {
     super.initState();
     HomeWidget.widgetClicked.listen((Uri? uri) => _handleWidgetRoute(uri));
     HomeWidget.initiallyLaunchedFromHomeWidget().then((Uri? uri) => _handleWidgetRoute(uri));
+    
+    // Process pending notification deep link
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_pendingDeepLink != null) {
+        _handleDeepLink(_pendingDeepLink!);
+        _pendingDeepLink = null;
+      }
+    });
   }
 
   void _handleWidgetRoute(Uri? uri) {
-    if (uri != null && uri.scheme == 'tvtime') {
-      if (uri.host == 'show') {
-        if (uri.pathSegments.length >= 2) {
-          final tmdbIdStr = uri.pathSegments[0];
-          final type = uri.pathSegments[1];
-          final tmdbId = int.tryParse(tmdbIdStr);
-          if (tmdbId != null) {
-            // Push show details
-            navigatorKey.currentState?.push(
-              MaterialPageRoute(
-                builder: (context) => ShowDetailsScreen(tmdbId: tmdbId, type: type),
-              ),
-            );
-          }
-        }
-      } else if (uri.host == 'home') {
-        navigatorKey.currentState?.popUntil((route) => route.isFirst);
-      }
+    if (uri != null) {
+      _handleDeepLink(uri);
     }
   }
 

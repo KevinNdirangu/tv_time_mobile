@@ -242,43 +242,7 @@ class SettingsScreen extends ConsumerWidget {
             // ── NOTIFICATIONS ─────────────────────────────────────────────────
             _SectionLabel(label: 'Notifications'),
             _SettingsGroup(children: [
-              _ActionRow(
-                icon: Icons.notifications_active_rounded,
-                iconColor: const Color(0xFFff3b30),
-                title: 'Enable Push Notifications',
-                subtitle: 'Get alerts when episodes from your list air today.',
-                onTap: () async {
-                  PermissionStatus status = await Permission.notification.status;
-                  if (status.isDenied) {
-                    status = await Permission.notification.request();
-                  }
-                  if (!context.mounted) return;
-                  if (status.isGranted) {
-                    _snack(context, '✓ Notifications enabled!');
-                  } else if (status.isPermanentlyDenied || status.isRestricted) {
-                    showDialog(
-                      context: context,
-                      builder: (ctx) => AlertDialog(
-                        backgroundColor: AppTheme.surfaceLight,
-                        title: const Text('Permission Required', style: TextStyle(color: AppTheme.textMain)),
-                        content: const Text(
-                          'Notification permission is restricted or permanently denied. Please enable it in system settings.',
-                          style: TextStyle(color: AppTheme.textMuted),
-                        ),
-                        actions: [
-                          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-                          TextButton(
-                            onPressed: () { openAppSettings(); Navigator.pop(ctx); },
-                            child: Text('Open Settings', style: TextStyle(color: AppTheme.primary)),
-                          ),
-                        ],
-                      ),
-                    );
-                  } else {
-                    _snack(context, 'Status: ${status.name}. Check app settings.');
-                  }
-                },
-              ),
+              _NotificationRow(),
             ]),
 
             // ── DATA MANAGEMENT ───────────────────────────────────────────────
@@ -570,3 +534,92 @@ class _ColorDot extends StatelessWidget {
     );
   }
 }
+
+class _NotificationRow extends StatefulWidget {
+  @override
+  State<_NotificationRow> createState() => _NotificationRowState();
+}
+
+class _NotificationRowState extends State<_NotificationRow> with WidgetsBindingObserver {
+  bool _isGranted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkStatus();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkStatus();
+    }
+  }
+
+  Future<void> _checkStatus() async {
+    final status = await Permission.notification.status;
+    if (mounted) {
+      setState(() => _isGranted = status.isGranted);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isGranted) {
+      return _ActionRow(
+        icon: Icons.notifications_active_rounded,
+        iconColor: const Color(0xFF34c759),
+        title: 'Push Notifications Enabled',
+        subtitle: 'You will receive alerts when episodes air.',
+        trailing: const Icon(Icons.check_circle_rounded, color: Color(0xFF34c759), size: 20),
+        onTap: () {},
+      );
+    }
+    return _ActionRow(
+      icon: Icons.notifications_active_rounded,
+      iconColor: const Color(0xFFff3b30),
+      title: 'Enable Push Notifications',
+      subtitle: 'Get alerts when episodes from your list air today.',
+      onTap: () async {
+        PermissionStatus status = await Permission.notification.status;
+        if (status.isDenied) {
+          status = await Permission.notification.request();
+        }
+        if (!context.mounted) return;
+        if (status.isGranted) {
+          setState(() => _isGranted = true);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('✓ Notifications enabled!')),
+          );
+        } else if (status.isPermanentlyDenied || status.isRestricted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppTheme.surfaceLight,
+              title: const Text('Permission Required', style: TextStyle(color: AppTheme.textMain)),
+              content: const Text(
+                'Notification permission is restricted or permanently denied. Please enable it in system settings.',
+                style: TextStyle(color: AppTheme.textMuted),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                TextButton(
+                  onPressed: () { openAppSettings(); Navigator.pop(ctx); },
+                  child: Text('Open Settings', style: TextStyle(color: AppTheme.primary)),
+                ),
+              ],
+            ),
+          );
+        }
+      },
+    );
+  }
+}
+

@@ -26,8 +26,12 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     return Scaffold(
       drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
+      backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Statistics', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppTheme.background,
+        elevation: 0,
+        centerTitle: false,
+        title: const Text('Statistics', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
         actions: [
           Builder(
             builder: (context) => Badge(
@@ -144,29 +148,29 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
               List<String> yearOptions = ['All Time', ...allYears.toList()..sort((a, b) => b.compareTo(a))];
 
               return SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Your TV Story', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+                        const Text('Your TV Story', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 0),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppTheme.surfaceLight,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.white10),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: yearOptions.contains(selectedYear) ? selectedYear : 'All Time',
                               dropdownColor: AppTheme.surfaceLight,
-                              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                              style: const TextStyle(color: Colors.white, fontSize: 14),
+                              icon: const Icon(Icons.arrow_drop_down_rounded, color: Colors.white),
+                              style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
                               items: yearOptions.map((y) {
-                                return DropdownMenuItem(value: y, child: Padding(padding: const EdgeInsets.symmetric(horizontal: 8.0), child: Text(y)));
+                                return DropdownMenuItem(value: y, child: Text(y));
                               }).toList(),
                               onChanged: (val) {
                                 if (val != null) {
@@ -180,189 +184,168 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                     ),
                     const SizedBox(height: 24),
                     
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: AppTheme.surfaceLight,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white10),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.timer_rounded, color: AppTheme.primary, size: 40),
-                          const SizedBox(height: 10),
-                          const Text('Total Time Watched', style: TextStyle(color: AppTheme.textMuted)),
-                          const SizedBox(height: 5),
-                          Text(
-                            '${mo > 0 ? '$mo mo ' : ''}${d > 0 ? '$d d ' : ''}${h > 0 ? '$h h ' : ''}$m m',
-                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textMain),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    const Text('TV Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Row(
-                        children: [
-                          if (tvSeenPct > 0) Expanded(flex: (tvSeenPct * 100).toInt(), child: Container(height: 12, color: AppTheme.primary)),
-                          if (tvWatchPct > 0) Expanded(flex: (tvWatchPct * 100).toInt(), child: Container(height: 12, color: Colors.amber)),
-                          if (tvNotPct > 0) Expanded(flex: (tvNotPct * 100).toInt(), child: Container(height: 12, color: Colors.grey)),
-                          if (totalTv == 0) Expanded(child: Container(height: 12, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    _SectionLabel(label: 'Total Time Watched'),
+                    _SettingsGroup(
                       children: [
-                        Text('Seen: $tvSeen', style: TextStyle(color: AppTheme.primary, fontSize: 12)),
-                        Text('Watching: $tvWatching', style: const TextStyle(color: Colors.amber, fontSize: 12)),
-                        Text('Not Started: $tvNotStarted', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    const Text('Movies', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Row(
-                        children: [
-                          if (movSeenPct > 0) Expanded(flex: (movSeenPct * 100).toInt(), child: Container(height: 12, color: AppTheme.primary)),
-                          if (movNotPct > 0) Expanded(flex: (movNotPct * 100).toInt(), child: Container(height: 12, color: Colors.grey)),
-                          if (totalMovies == 0) Expanded(child: Container(height: 12, color: Colors.grey)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Seen: $moviesSeen', style: TextStyle(color: AppTheme.primary, fontSize: 12)),
-                        Text('Watchlist: $moviesNotStarted', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    if (top10Genres.isNotEmpty) ...[
-                      const Text('Top Genres', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-                      const SizedBox(height: 10),
-                      ...top10Genres.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final g = entry.value;
-                        final pct = g.value / maxGenreVal;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                           child: Row(
                             children: [
-                              SizedBox(width: 24, child: Text('${idx + 1}.', style: const TextStyle(color: AppTheme.textMuted, fontWeight: FontWeight.bold))),
+                              _SettingIcon(icon: Icons.timer_rounded, color: AppTheme.primary),
+                              const SizedBox(width: 16),
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(g.key, style: const TextStyle(color: AppTheme.textMain, fontSize: 14)),
-                                        Text('${g.value} entries', style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: LinearProgressIndicator(
-                                        value: pct,
-                                        backgroundColor: Colors.white10,
-                                        color: AppTheme.primary,
-                                        minHeight: 6,
-                                      ),
-                                    ),
-                                  ],
+                                child: Text(
+                                  '${mo > 0 ? '$mo mo ' : ''}${d > 0 ? '$d d ' : ''}${h > 0 ? '$h h ' : ''}$m m',
+                                  style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textMain),
                                 ),
                               ),
                             ],
                           ),
-                        );
-                      }),
-                      const SizedBox(height: 24),
+                        ),
+                      ],
+                    ),
+
+                    _SectionLabel(label: 'TV Shows'),
+                    _SettingsGroup(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Row(
+                                  children: [
+                                    if (tvSeenPct > 0) Expanded(flex: (tvSeenPct * 100).toInt(), child: Container(height: 8, color: AppTheme.primary)),
+                                    if (tvWatchPct > 0) Expanded(flex: (tvWatchPct * 100).toInt(), child: Container(height: 8, color: Colors.amber)),
+                                    if (tvNotPct > 0) Expanded(flex: (tvNotPct * 100).toInt(), child: Container(height: 8, color: Colors.grey)),
+                                    if (totalTv == 0) Expanded(child: Container(height: 8, color: Colors.white10)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _StatLegend(color: AppTheme.primary, label: 'Seen', value: '$tvSeen'),
+                                  _StatLegend(color: Colors.amber, label: 'Watching', value: '$tvWatching'),
+                                  _StatLegend(color: Colors.grey, label: 'Not Started', value: '$tvNotStarted'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    _SectionLabel(label: 'Movies'),
+                    _SettingsGroup(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Row(
+                                  children: [
+                                    if (movSeenPct > 0) Expanded(flex: (movSeenPct * 100).toInt(), child: Container(height: 8, color: AppTheme.primary)),
+                                    if (movNotPct > 0) Expanded(flex: (movNotPct * 100).toInt(), child: Container(height: 8, color: Colors.grey)),
+                                    if (totalMovies == 0) Expanded(child: Container(height: 8, color: Colors.white10)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  _StatLegend(color: AppTheme.primary, label: 'Seen', value: '$moviesSeen'),
+                                  _StatLegend(color: Colors.grey, label: 'Watchlist', value: '$moviesNotStarted'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    if (top10Genres.isNotEmpty) ...[
+                      _SectionLabel(label: 'Top Genres'),
+                      _SettingsGroup(
+                        children: top10Genres.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final g = entry.value;
+                          final pct = g.value / maxGenreVal;
+                          return Column(
+                            children: [
+                              _BarRow(
+                                rank: idx + 1,
+                                title: g.key,
+                                value: '${g.value}',
+                                pct: pct,
+                                color: const Color(0xFFaf52de),
+                              ),
+                              if (idx != top10Genres.length - 1) _Divider(),
+                            ],
+                          );
+                        }).toList(),
+                      ),
                     ],
                     
                     if (top5Years.isNotEmpty) ...[
-                      const Text('Favorite Release Years', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-                      const SizedBox(height: 10),
-                      ...top5Years.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final y = entry.value;
-                        final pct = y.value / maxYearVal;
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 12.0),
-                          child: Row(
+                      _SectionLabel(label: 'Favorite Release Years'),
+                      _SettingsGroup(
+                        children: top5Years.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final y = entry.value;
+                          final pct = y.value / maxYearVal;
+                          return Column(
                             children: [
-                              SizedBox(width: 24, child: Text('${idx + 1}.', style: const TextStyle(color: AppTheme.textMuted, fontWeight: FontWeight.bold))),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(y.key, style: const TextStyle(color: AppTheme.textMain, fontSize: 14)),
-                                        Text('${y.value} entries', style: TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    ClipRRect(
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: LinearProgressIndicator(
-                                        value: pct,
-                                        backgroundColor: Colors.white10,
-                                        color: AppTheme.primary,
-                                        minHeight: 6,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              _BarRow(
+                                rank: idx + 1,
+                                title: y.key,
+                                value: '${y.value}',
+                                pct: pct,
+                                color: const Color(0xFF34c759),
                               ),
+                              if (idx != top5Years.length - 1) _Divider(),
                             ],
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 24),
+                          );
+                        }).toList(),
+                      ),
                     ],
 
                     if (topShows.isNotEmpty) ...[
-                      const Text('Top Shows', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
-                      const SizedBox(height: 10),
-                      ...topShows.asMap().entries.map((entry) {
-                        final idx = entry.key;
-                        final s = entry.value;
-                        return Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: Colors.white10))),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      _SectionLabel(label: 'Top Shows'),
+                      _SettingsGroup(
+                        children: topShows.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final s = entry.value;
+                          return Column(
                             children: [
-                              Expanded(
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 child: Row(
                                   children: [
-                                    SizedBox(width: 24, child: Text('${idx + 1}.', style: const TextStyle(color: AppTheme.textMuted, fontWeight: FontWeight.bold))),
-                                    Expanded(child: Text(s['title'], style: const TextStyle(color: AppTheme.textMain), overflow: TextOverflow.ellipsis)),
+                                    SizedBox(
+                                      width: 24,
+                                      child: Text('${idx + 1}.', style: const TextStyle(color: AppTheme.textMuted, fontSize: 13, fontWeight: FontWeight.bold)),
+                                    ),
+                                    Expanded(
+                                      child: Text(s['title'], style: const TextStyle(color: AppTheme.textMain, fontSize: 14, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                                    ),
+                                    Text('${s['count']} eps', style: TextStyle(color: AppTheme.primary, fontSize: 13, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                               ),
-                              Text('${s['count']} eps', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                              if (idx != topShows.length - 1) _Divider(),
                             ],
-                          ),
-                        );
-                      }),
+                          );
+                        }).toList(),
+                      ),
                     ],
-                    const SizedBox(height: 40),
                   ],
                 ),
               );
@@ -373,6 +356,145 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         },
         loading: () => Center(child: CircularProgressIndicator(color: AppTheme.primary)),
         error: (err, stack) => Center(child: Text('Error: $err')),
+      ),
+    );
+  }
+}
+
+// ── SHARED WIDGETS ─────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String label;
+  const _SectionLabel({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, top: 24, bottom: 8),
+      child: Text(
+        label.toUpperCase(),
+        style: const TextStyle(
+          color: AppTheme.textMuted,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsGroup extends StatelessWidget {
+  final List<Widget> children;
+  const _SettingsGroup({required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceLight,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(14),
+        child: Column(children: children),
+      ),
+    );
+  }
+}
+
+class _Divider extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 0.5,
+      margin: const EdgeInsets.only(left: 16),
+      color: Colors.white.withValues(alpha: 0.08),
+    );
+  }
+}
+
+class _SettingIcon extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  const _SettingIcon({required this.icon, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+      child: Icon(icon, color: Colors.white, size: 18),
+    );
+  }
+}
+
+class _StatLegend extends StatelessWidget {
+  final Color color;
+  final String label;
+  final String value;
+  const _StatLegend({required this.color, required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+        const SizedBox(width: 6),
+        Text(value, style: const TextStyle(color: AppTheme.textMain, fontSize: 13, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+}
+
+class _BarRow extends StatelessWidget {
+  final int rank;
+  final String title;
+  final String value;
+  final double pct;
+  final Color color;
+
+  const _BarRow({required this.rank, required this.title, required this.value, required this.pct, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            child: Text('$rank.', style: const TextStyle(color: AppTheme.textMuted, fontSize: 13, fontWeight: FontWeight.bold)),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(title, style: const TextStyle(color: AppTheme.textMain, fontSize: 14, fontWeight: FontWeight.w500)),
+                    Text(value, style: TextStyle(color: AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    backgroundColor: Colors.white.withValues(alpha: 0.05),
+                    color: color,
+                    minHeight: 4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

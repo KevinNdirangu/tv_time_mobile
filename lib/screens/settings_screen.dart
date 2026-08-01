@@ -99,7 +99,7 @@ class SettingsScreen extends ConsumerWidget {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const CircularProgressIndicator(color: AppTheme.primary),
+                      CircularProgressIndicator(color: AppTheme.primary),
                       const SizedBox(height: 20),
                       Text(value, style: const TextStyle(color: AppTheme.textMuted, fontSize: 14), textAlign: TextAlign.center),
                     ],

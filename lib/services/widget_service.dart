@@ -116,7 +116,7 @@ class WidgetService {
           "tmdb_id": ep.tmdbId.toString(),
           "type": ep.type,
           "air_date": formattedDate,
-          "air_time": "TBA"
+          "air_time": ""
         });
       }
       

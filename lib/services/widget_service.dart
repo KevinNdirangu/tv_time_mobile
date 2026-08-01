@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:home_widget/home_widget.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 import '../models/library_show.dart';
 import 'supabase_service.dart';
 
@@ -11,28 +15,61 @@ class WidgetService {
     await HomeWidget.setAppGroupId(_appGroupId);
   }
 
+  static Future<String?> _downloadAndCacheImage(String? url, String showId) async {
+    if (url == null || url.isEmpty) return null;
+    
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      final File file = File('${directory.path}/widget_poster_$showId.jpg');
+      
+      // If we already have it, just return the path to save time/bandwidth
+      if (await file.exists()) {
+        return file.path;
+      }
+      
+      final fullUrl = "https://image.tmdb.org/t/p/w200$url";
+      final response = await http.get(Uri.parse(fullUrl));
+      if (response.statusCode == 200) {
+        await file.writeAsBytes(response.bodyBytes);
+        return file.path;
+      }
+    } catch (e) {
+      print("Failed to cache image: $e");
+    }
+    return null;
+  }
+
   static Future<void> updateUpNextWidget(List<LibraryShow> libraryData) async {
     try {
-      // Find the most recent 'Up Next' show
       final watching = libraryData
           .where((s) => s.show.type == 'tv' && s.watchedEpisodes > 0 && s.watchedEpisodes < s.show.totalEpisodes && s.show.isStopped == 0)
           .toList();
       watching.sort((a, b) => b.show.id.compareTo(a.show.id));
 
-      if (watching.isNotEmpty) {
-        final nextShow = watching.first;
-        final nextEpisodeNum = nextShow.watchedEpisodes + 1;
-        
-        await HomeWidget.saveWidgetData<String>('widget_show_title', nextShow.show.title);
-        await HomeWidget.saveWidgetData<String>('widget_episode_title', 'Next: Episode $nextEpisodeNum');
-      } else {
-        await HomeWidget.saveWidgetData<String>('widget_show_title', 'All caught up!');
-        await HomeWidget.saveWidgetData<String>('widget_episode_title', 'Find a new show');
+      final List<Map<String, String>> upNextList = [];
+      
+      // Get up to 10 shows for the list
+      for (var s in watching.take(10)) {
+        final localPath = await _downloadAndCacheImage(s.show.posterUrl, s.show.id.toString());
+        upNextList.add({
+          "title": s.show.title,
+          "subtitle": "Next: Episode ${s.watchedEpisodes + 1}",
+          "image_path": localPath ?? ""
+        });
+      }
+      
+      if (upNextList.isEmpty) {
+         upNextList.add({
+          "title": "All caught up!",
+          "subtitle": "Find a new show",
+          "image_path": ""
+        });
       }
 
+      await HomeWidget.saveWidgetData<String>('up_next_list_data', jsonEncode(upNextList));
       await HomeWidget.updateWidget(name: _upNextWidgetName);
     } catch (e) {
-      // Ignore errors if widget isn't supported or fails to update
+      print('Widget update failed: $e');
     }
   }
 
@@ -41,27 +78,33 @@ class WidgetService {
       final now = DateTime.now();
       final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
       
-      // Filter for upcoming in the next 30 days
       final upcoming = calendarData.where((e) => e.airDate.compareTo(todayStr) >= 0).toList();
-      
-      // Ensure they are sorted by air date
       upcoming.sort((a, b) => a.airDate.compareTo(b.airDate));
 
-      for (int i = 1; i <= 3; i++) {
-        final key = 'widget_cal_item_$i';
-        if (i - 1 < upcoming.length) {
-          final ep = upcoming[i - 1];
-          final text = "${ep.showTitle}\nS${ep.seasonNumber.toString().padLeft(2, '0')}E${ep.episodeNumber.toString().padLeft(2, '0')} - Airs: ${ep.airDate}";
-          await HomeWidget.saveWidgetData<String>(key, text);
-        } else {
-          // Clear if less than 3
-          await HomeWidget.saveWidgetData<String>(key, "");
-        }
+      final List<Map<String, String>> calendarList = [];
+      
+      // Get up to 15 episodes for the list
+      for (var ep in upcoming.take(15)) {
+        final localPath = await _downloadAndCacheImage(ep.posterUrl, ep.showId.toString());
+        calendarList.add({
+          "title": ep.showTitle,
+          "subtitle": "S${ep.seasonNumber.toString().padLeft(2, '0')}E${ep.episodeNumber.toString().padLeft(2, '0')} - Airs: ${ep.airDate}",
+          "image_path": localPath ?? ""
+        });
+      }
+      
+      if (calendarList.isEmpty) {
+         calendarList.add({
+          "title": "No upcoming shows",
+          "subtitle": "",
+          "image_path": ""
+        });
       }
 
+      await HomeWidget.saveWidgetData<String>('calendar_list_data', jsonEncode(calendarList));
       await HomeWidget.updateWidget(name: _calendarWidgetName);
     } catch (e) {
-      // Ignore errors
+      print('Widget update failed: $e');
     }
   }
 }

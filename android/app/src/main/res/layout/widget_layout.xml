@@ -1,47 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/widget_root"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#15171e">
+    android:orientation="vertical"
+    android:background="@drawable/widget_background">
 
-    <ImageView
-        android:id="@+id/widget_image"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="centerCrop"
-        android:alpha="0.4"
-        android:contentDescription="Widget Background" />
-
-    <LinearLayout
+    <TextView
+        android:id="@+id/widget_title"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:background="#99000000">
+        android:text="Continue Watching"
+        android:textColor="#E5A00D"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:padding="12dp"
+        android:background="#22000000" />
 
-        <TextView
-            android:id="@+id/widget_show_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="No shows up next"
-            android:textColor="#FFFFFF"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:maxLines="1"
-            android:ellipsize="end" />
+    <ListView
+        android:id="@+id/widget_list_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:divider="@null"
+        android:dividerHeight="0dp"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp" />
 
-        <TextView
-            android:id="@+id/widget_episode_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Open app to sync"
-            android:textColor="#CCCCCC"
-            android:textSize="14sp"
-            android:layout_marginTop="4dp"
-            android:maxLines="1"
-            android:ellipsize="end" />
-    </LinearLayout>
-
-</RelativeLayout>
+</LinearLayout>

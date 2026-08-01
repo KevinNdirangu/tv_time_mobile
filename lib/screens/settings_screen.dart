@@ -15,6 +15,7 @@ import 'navigation_drawer.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/supabase_service.dart';
+import '../services/notification_service.dart';
 import '../main.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -277,6 +278,21 @@ class SettingsScreen extends ConsumerWidget {
             _SectionLabel(label: 'Notifications'),
             _SettingsGroup(children: [
               _NotificationRow(),
+              _Divider(),
+              _ActionRow(
+                icon: Icons.bug_report_rounded,
+                iconColor: const Color(0xFFff9f0a),
+                title: 'Test Notification',
+                subtitle: 'Send a test push notification to verify setup.',
+                onTap: () async {
+                  await NotificationService.showNotification(
+                    id: 999,
+                    title: 'Test Successful!',
+                    body: 'Your notification system is working perfectly.',
+                  );
+                  if (context.mounted) _snack(context, 'Test notification sent!');
+                },
+              ),
             ]),
 
             // ── DATA MANAGEMENT ───────────────────────────────────────────────

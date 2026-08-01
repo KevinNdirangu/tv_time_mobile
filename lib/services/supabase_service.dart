@@ -201,16 +201,20 @@ final calendarProvider = FutureProvider<List<CalendarEpisode>>((ref) async {
   final past = now.subtract(const Duration(days: 30));
   final fromDate = "${past.year}-${past.month.toString().padLeft(2, '0')}-${past.day.toString().padLeft(2, '0')}";
 
-  // Query episodes that belong to the user's active shows
+  // Query episodes globally from fromDate (to avoid URL length limits with large inFilter)
   final response = await client.from('episodes')
       .select('show_id, season_number, episode_number, title, air_date')
-      .inFilter('show_id', activeShowIds)
       .gte('air_date', fromDate)
-      .order('air_date', ascending: true);
-
+      .order('air_date', ascending: true)
+      .limit(1000);
+  
   final List<CalendarEpisode> calendar = [];
+  final activeShowIdsSet = activeShowIds.toSet();
+
   for (var ep in response as List<dynamic>) {
     final showId = ep['show_id'];
+    if (!activeShowIdsSet.contains(showId)) continue;
+
     try {
       final show = activeShows.firstWhere((s) => s.id == showId);
       calendar.add(CalendarEpisode(

@@ -188,116 +188,182 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     return Scaffold(
       drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
-      appBar: AppBar(
-        title: const Text('Discover', style: TextStyle(fontWeight: FontWeight.bold)),
-        actions: [
-          Builder(
-            builder: (context) => Badge(
-              isLabelVisible: notifications.isNotEmpty,
-              alignment: Alignment.topRight,
-              child: IconButton(
-                icon: Icon(Icons.notifications_rounded, color: AppTheme.primary),
-                onPressed: () => Scaffold.of(context).openEndDrawer(),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      backgroundColor: AppTheme.background,
+      body: SafeArea(
         child: Column(
           children: [
-            // Search Bar
-            TextField(
-              controller: _searchController,
-              onChanged: _onSearchChanged,
-              style: const TextStyle(color: AppTheme.textMain),
-              decoration: InputDecoration(
-                hintText: 'Search for movies, TV shows...',
-                hintStyle: const TextStyle(color: AppTheme.textMuted),
-                prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
-                filled: true,
-                fillColor: AppTheme.surfaceLight,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Sub-nav for filtering
-            if (_searchController.text.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16.0),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          children: [
-                            _buildTypeChip('All', 'all'),
-                            _buildTypeChip('Movies', 'movie'),
-                            _buildTypeChip('TV Shows', 'tv'),
-                            _buildTypeChip('Anime', 'anime'),
-                          ],
-                        ),
+            // Premium Header
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Row(
+                children: [
+                  Builder(
+                    builder: (context) => IconButton(
+                      icon: const Icon(Icons.menu_rounded, color: AppTheme.textMain, size: 28),
+                      padding: EdgeInsets.zero,
+                      alignment: Alignment.centerLeft,
+                      onPressed: () => Scaffold.of(context).openDrawer(),
+                    ),
+                  ),
+                  const Expanded(
+                    child: Text(
+                      'Discover',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
+                        color: AppTheme.textMain,
+                        letterSpacing: -0.5,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      height: 35,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                  ),
+                  Builder(
+                    builder: (context) => Container(
                       decoration: BoxDecoration(
                         color: AppTheme.surfaceLight,
-                        borderRadius: BorderRadius.circular(8),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
                       ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: _currentGenre,
-                          dropdownColor: AppTheme.surfaceLight,
-                          style: const TextStyle(color: AppTheme.textMain, fontSize: 12),
-                          icon: const Icon(Icons.arrow_drop_down, color: AppTheme.textMuted),
-                          items: _genres.map((g) => DropdownMenuItem<String>(
-                            value: g['id'],
-                            child: Text(g['name']!),
-                          )).toList(),
-                          onChanged: (val) {
-                            if (val != null) {
-                              setState(() => _currentGenre = val);
-                              _loadTrending();
-                            }
-                          },
+                      child: Badge(
+                        isLabelVisible: notifications.isNotEmpty,
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          icon: Icon(Icons.notifications_rounded, color: AppTheme.primary, size: 22),
+                          onPressed: () => Scaffold.of(context).openEndDrawer(),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
             
-            // Results Section
+            // Search & Filters Header
+            Container(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+              ),
+              child: Column(
+                children: [
+                  // Search Bar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceLight,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                      boxShadow: [
+                        BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                      ],
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: _onSearchChanged,
+                      style: const TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.w500),
+                      decoration: InputDecoration(
+                        hintText: 'Search movies, TV shows...',
+                        hintStyle: TextStyle(color: AppTheme.textMuted.withValues(alpha: 0.7)),
+                        prefixIcon: Icon(Icons.search_rounded, color: AppTheme.primary),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  
+                  // Filter Chips
+                  if (_searchController.text.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 16.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
+                              child: Row(
+                                children: [
+                                  _buildTypeChip('All', 'all'),
+                                  _buildTypeChip('Movies', 'movie'),
+                                  _buildTypeChip('TV Shows', 'tv'),
+                                  _buildTypeChip('Anime', 'anime'),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Container(
+                            height: 36,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceLight,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: _currentGenre,
+                                dropdownColor: AppTheme.surfaceLight,
+                                style: const TextStyle(color: AppTheme.textMain, fontSize: 13, fontWeight: FontWeight.w600),
+                                icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppTheme.textMuted, size: 18),
+                                items: _genres.map((g) => DropdownMenuItem<String>(
+                                  value: g['id'],
+                                  child: Text(g['name']!),
+                                )).toList(),
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _currentGenre = val);
+                                    _loadTrending();
+                                  }
+                                },
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            
+            // Results Grid
             Expanded(
               child: _isLoading
                   ? Center(child: CircularProgressIndicator(color: AppTheme.primary))
                   : filteredResults.isEmpty
-                      ? const Center(child: Text('No results found (or all are in your library).', style: TextStyle(color: AppTheme.textMuted)))
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.search_off_rounded, size: 64, color: AppTheme.surfaceLight),
+                              const SizedBox(height: 16),
+                              const Text('No results found.', style: TextStyle(color: AppTheme.textMuted, fontSize: 16)),
+                            ],
+                          ),
+                        )
                       : GridView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                           controller: _scrollController,
+                          physics: const BouncingScrollPhysics(),
                           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 3,
                             childAspectRatio: 0.65,
-                            crossAxisSpacing: 10,
-                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 16,
                           ),
-                          itemCount: filteredResults.length,
+                          itemCount: filteredResults.length + (_isLoadingMore ? 3 : 0),
                           itemBuilder: (context, index) {
+                            if (index >= filteredResults.length) {
+                              return Container(
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surfaceLight.withValues(alpha: 0.5),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Center(child: CircularProgressIndicator()),
+                              );
+                            }
+
                             final item = filteredResults[index];
                             final title = item['title'] ?? item['name'] ?? 'Unknown';
                             final posterPath = item['poster_path'];
-                            
-                            // Discover endpoint sometimes omits media_type for specific endpoints, so fallback based on current type or general guess
                             final type = item['media_type'] ?? (item['title'] != null ? 'movie' : 'tv');
 
                             return GestureDetector(
@@ -307,98 +373,119 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                                   type: type,
                                 )));
                               },
-                              child: Stack(
-                                children: [
-                                  // Background Poster
-                                  Positioned.fill(
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: posterPath != null
-                                          ? Image.network(
-                                              'https://image.tmdb.org/t/p/w200$posterPath', 
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) => _buildPlaceholder(title),
-                                            )
-                                          : _buildPlaceholder(title),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.4),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
                                     ),
-                                  ),
-                                  
-                                  // Top Left: Tag (MOVIE / TV)
-                                  Positioned(
-                                    top: 6,
-                                    left: 6,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: type == 'movie' ? AppTheme.primary : Colors.white,
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        type.toUpperCase(),
-                                        style: const TextStyle(
-                                          color: Colors.black,
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w900,
-                                        ),
+                                  ],
+                                ),
+                                child: Stack(
+                                  children: [
+                                    // Background Poster
+                                    Positioned.fill(
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: posterPath != null
+                                            ? Image.network(
+                                                'https://image.tmdb.org/t/p/w300$posterPath', 
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) => _buildPlaceholder(title),
+                                              )
+                                            : _buildPlaceholder(title),
                                       ),
                                     ),
-                                  ),
-
-                                  // Top Right: + Add Button
-                                  Positioned(
-                                    top: 6,
-                                    right: 6,
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        // Quick add action (for now just open details modal)
-                                        Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailsScreen(
-                                          tmdbId: item['id'],
-                                          type: type,
-                                        )));
-                                      },
+                                    
+                                    // Top Left: Pill Badge
+                                    Positioned(
+                                      top: 8,
+                                      left: 8,
                                       child: Container(
-                                        padding: const EdgeInsets.all(4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.6),
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white24),
-                                        ),
-                                        child: const Icon(Icons.add, size: 16, color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-
-                                  // Bottom: Title Overlay
-                                  Positioned(
-                                    bottom: 0,
-                                    left: 0,
-                                    right: 0,
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
-                                        gradient: LinearGradient(
-                                          begin: Alignment.bottomCenter,
-                                          end: Alignment.topCenter,
-                                          colors: [
-                                            Colors.black.withValues(alpha: 0.9),
-                                            Colors.transparent,
+                                          color: type == 'movie' ? AppTheme.primary : AppTheme.surfaceLight,
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(
+                                            color: type == 'movie' ? Colors.transparent : Colors.white.withValues(alpha: 0.2),
+                                            width: 1,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 4),
                                           ],
                                         ),
-                                      ),
-                                      padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
-                                      child: Text(
-                                        title,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.bold,
+                                        child: Text(
+                                          type.toUpperCase(),
+                                          style: TextStyle(
+                                            color: type == 'movie' ? Colors.black : Colors.white,
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w900,
+                                            letterSpacing: 0.5,
+                                          ),
                                         ),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  ),
-                                ],
+
+                                    // Top Right: + Add Button
+                                    Positioned(
+                                      top: 8,
+                                      right: 8,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          Navigator.push(context, MaterialPageRoute(builder: (_) => ShowDetailsScreen(
+                                            tmdbId: item['id'],
+                                            type: type,
+                                          )));
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.5),
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+                                          ),
+                                          child: const Icon(Icons.add_rounded, size: 16, color: Colors.white),
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Bottom: Title Overlay
+                                    Positioned(
+                                      bottom: 0,
+                                      left: 0,
+                                      right: 0,
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                                          gradient: LinearGradient(
+                                            begin: Alignment.bottomCenter,
+                                            end: Alignment.topCenter,
+                                            colors: [
+                                              Colors.black.withValues(alpha: 0.95),
+                                              Colors.black.withValues(alpha: 0.6),
+                                              Colors.transparent,
+                                            ],
+                                          ),
+                                        ),
+                                        padding: const EdgeInsets.fromLTRB(8, 24, 8, 8),
+                                        child: Text(
+                                          title,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            height: 1.2,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           },
@@ -421,16 +508,21 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isActive ? AppTheme.primary.withValues(alpha: 0.2) : Colors.transparent,
+          color: isActive ? AppTheme.primary : AppTheme.surfaceLight,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isActive ? AppTheme.primary : AppTheme.surfaceLight),
+          border: Border.all(
+            color: isActive ? AppTheme.primary : Colors.white.withValues(alpha: 0.05),
+          ),
+          boxShadow: isActive ? [
+            BoxShadow(color: AppTheme.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))
+          ] : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isActive ? AppTheme.primary : AppTheme.textMuted,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-            fontSize: 12,
+            color: isActive ? Colors.black : AppTheme.textMuted,
+            fontWeight: isActive ? FontWeight.w900 : FontWeight.w600,
+            fontSize: 13,
           ),
         ),
       ),
@@ -442,10 +534,19 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       color: AppTheme.surfaceLight,
       padding: const EdgeInsets.all(8.0),
       alignment: Alignment.center,
-      child: Text(
-        title,
-        style: const TextStyle(color: AppTheme.textMuted, fontSize: 10),
-        textAlign: TextAlign.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.movie_creation_rounded, color: Colors.white.withValues(alpha: 0.1), size: 32),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 10, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

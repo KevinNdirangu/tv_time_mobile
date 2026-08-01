@@ -8,7 +8,6 @@ import 'package:intl/intl.dart';
 
 import '../services/supabase_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/poster_image.dart';
 
 class CalendarScreen extends ConsumerWidget {
   const CalendarScreen({super.key});
@@ -170,7 +169,15 @@ class CalendarScreen extends ConsumerWidget {
                   child: SizedBox(
                     width: itemWidth,
                     height: itemHeight,
-                    child: PosterImage(url: ep.posterUrl, width: itemWidth, height: itemHeight),
+                    child: ep.posterUrl != null 
+                        ? Image.network(
+                            ep.posterUrl!, 
+                            width: itemWidth, 
+                            height: itemHeight, 
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => _buildPlaceholder(ep.showTitle),
+                          )
+                        : _buildPlaceholder(ep.showTitle),
                   ),
                 ),
                 // Days Badge
@@ -187,7 +194,7 @@ class CalendarScreen extends ConsumerWidget {
                       ),
                       child: Text(
                         diffText,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: AppTheme.primary,
                           fontSize: 10,
                           fontWeight: FontWeight.bold,
@@ -259,5 +266,30 @@ class CalendarScreen extends ConsumerWidget {
     } catch (e) {
       debugPrint('Could not launch calendar URL: $e');
     }
+  }
+
+  Widget _buildPlaceholder(String title) {
+    return Container(
+      color: AppTheme.surfaceLight,
+      padding: const EdgeInsets.all(8.0),
+      alignment: Alignment.center,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.video_library_rounded, color: Colors.white.withValues(alpha: 0.1), size: 32),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.3),
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

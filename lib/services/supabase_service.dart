@@ -403,6 +403,88 @@ class SupabaseActions {
     }
   }
 
+  static Future<void> removeShow(int showId) async {
+    final client = Supabase.instance.client;
+    await client.from('shows').delete().eq('id', showId);
+  }
+
+  static Future<void> setStopped(int showId, int val) async {
+    final client = Supabase.instance.client;
+    await client.from('shows').update({'is_stopped': val}).eq('id', showId);
+  }
+
+  static Future<void> markSeason(int showId, int seasonNum, bool isWatched) async {
+    final client = Supabase.instance.client;
+    if (isWatched) {
+      final epsRes = await client.from('episodes').select('id, air_date, watch_history(id)').eq('show_id', showId).eq('season_number', seasonNum);
+      final List eps = epsRes as List;
+      final now = DateTime.now();
+      
+      List<Map<String, dynamic>> toInsert = [];
+      for (var ep in eps) {
+        if (ep['air_date'] != null && ep['air_date'].toString().isNotEmpty) {
+          final airDate = DateTime.parse(ep['air_date'].toString());
+          final history = ep['watch_history'] as List?;
+          if (airDate.isBefore(now) || airDate.isAtSameMomentAs(now)) {
+            if (history == null || history.isEmpty) {
+              toInsert.add({'episode_id': ep['id']});
+            }
+          }
+        }
+      }
+      
+      if (toInsert.isNotEmpty) {
+        final maxIdRes = await client.from('watch_history').select('id').order('id', ascending: false).limit(1).maybeSingle();
+        int nextId = (maxIdRes != null ? maxIdRes['id'] as int : 0) + 1;
+        for (int i = 0; i < toInsert.length; i++) {
+          toInsert[i]['id'] = nextId + i;
+        }
+        await client.from('watch_history').insert(toInsert);
+      }
+    } else {
+      final epsRes = await client.from('episodes').select('id').eq('show_id', showId).eq('season_number', seasonNum);
+      final List eps = epsRes as List;
+      if (eps.isNotEmpty) {
+        final ids = eps.map((e) => e['id']).toList();
+        await client.from('watch_history').delete().inFilter('episode_id', ids);
+      }
+    }
+  }
+
+  static Future<void> markUpTo(int showId, int seasonNum, int epNum) async {
+    final client = Supabase.instance.client;
+    final epsRes = await client.from('episodes').select('id, season_number, episode_number, air_date, watch_history(id)').eq('show_id', showId);
+    final List eps = epsRes as List;
+    final now = DateTime.now();
+    
+    List<Map<String, dynamic>> toInsert = [];
+    for (var ep in eps) {
+      if (ep['air_date'] != null && ep['air_date'].toString().isNotEmpty) {
+        final airDate = DateTime.parse(ep['air_date'].toString());
+        final sNum = ep['season_number'] as int;
+        final eNum = ep['episode_number'] as int;
+        final history = ep['watch_history'] as List?;
+        
+        final isBeforeOrEq = sNum < seasonNum || (sNum == seasonNum && eNum <= epNum);
+        
+        if (isBeforeOrEq && (airDate.isBefore(now) || airDate.isAtSameMomentAs(now))) {
+          if (history == null || history.isEmpty) {
+            toInsert.add({'episode_id': ep['id']});
+          }
+        }
+      }
+    }
+    
+    if (toInsert.isNotEmpty) {
+      final maxIdRes = await client.from('watch_history').select('id').order('id', ascending: false).limit(1).maybeSingle();
+      int nextId = (maxIdRes != null ? maxIdRes['id'] as int : 0) + 1;
+      for (int i = 0; i < toInsert.length; i++) {
+        toInsert[i]['id'] = nextId + i;
+      }
+      await client.from('watch_history').insert(toInsert);
+    }
+  }
+
   static Future<void> runTimezoneFix() async {
     final client = Supabase.instance.client;
     

@@ -100,6 +100,33 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
             expandedHeight: 250,
             pinned: true,
             backgroundColor: AppTheme.surface,
+            actions: localData != null ? [
+              PopupMenuButton<String>(
+                onSelected: (value) async {
+                  if (value == 'remove') {
+                    await SupabaseActions.removeShow(localData!.show.id);
+                    ref.invalidate(showsProvider);
+                    ref.invalidate(libraryProvider);
+                    if (mounted) Navigator.pop(context);
+                  } else if (value == 'stop') {
+                    int newVal = localData!.show.isStopped == 1 ? 0 : 1;
+                    await SupabaseActions.setStopped(localData!.show.id, newVal);
+                    ref.invalidate(showsProvider);
+                    _fetchData();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'stop',
+                    child: Text(localData!.show.isStopped == 1 ? 'Resume Watching' : 'Stop Watching'),
+                  ),
+                  const PopupMenuItem(
+                    value: 'remove',
+                    child: Text('Remove Show', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              )
+            ] : null,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 title,
@@ -416,11 +443,25 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
         // Get local episodes for this season
         final localEpisodes = localData?.episodes.where((e) => e['season_number'] == seasonNum).toList() ?? [];
         final watchedCount = localEpisodes.where((e) => localData!.watchedEpisodeIds.contains(e['id'])).length;
+        final isAllWatched = localEpisodes.isNotEmpty && watchedCount == localEpisodes.length;
 
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ExpansionTile(
-            title: Text(season['name'] ?? 'Season $seasonNum', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+            title: Row(
+              children: [
+                Expanded(child: Text(season['name'] ?? 'Season $seasonNum', style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textMain))),
+                if (localData != null && localEpisodes.isNotEmpty)
+                  IconButton(
+                    icon: Icon(isAllWatched ? Icons.remove_done : Icons.done_all, color: isAllWatched ? AppTheme.textMuted : AppTheme.primary),
+                    onPressed: () async {
+                      await SupabaseActions.markSeason(localData!.show.id, seasonNum, !isAllWatched);
+                      ref.invalidate(showsProvider);
+                      _fetchData();
+                    },
+                  ),
+              ],
+            ),
             subtitle: localData != null
                 ? Text('$watchedCount / ${localEpisodes.length} Watched', style: TextStyle(color: AppTheme.primary))
                 : Text('${season['episode_count']} Episodes', style: const TextStyle(color: AppTheme.textMuted)),
@@ -457,6 +498,14 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
       
       return ListTile(
         title: Text('E${ep['episode_number'].toString().padLeft(2, '0')} $epTitle', style: TextStyle(color: isWatched ? AppTheme.textMuted : AppTheme.textMain)),
+        onLongPress: () async {
+          if (hasAired) {
+            await SupabaseActions.markUpTo(localData!.show.id, ep['season_number'], ep['episode_number']);
+            ref.invalidate(showsProvider);
+            _fetchData();
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked up to this episode.')));
+          }
+        },
         trailing: hasAired 
           ? IconButton(
               icon: Icon(

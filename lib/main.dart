@@ -24,9 +24,6 @@ void main() async {
   await AppTheme.loadPrimaryColor();
   await WidgetService.init();
 
-  // Request Notification Permissions on Android 13+
-  await Permission.notification.request();
-
   // Initialize Notifications
   await NotificationService.initialize();
   
@@ -90,6 +87,12 @@ class _MyAppState extends ConsumerState<MyApp> {
   @override
   void initState() {
     super.initState();
+    
+    // Request Notification Permissions on Android 13+ after app is mounted
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Permission.notification.request();
+    });
+
     HomeWidget.widgetClicked.listen((Uri? uri) => _handleWidgetRoute(uri));
     HomeWidget.initiallyLaunchedFromHomeWidget().then((Uri? uri) => _handleWidgetRoute(uri));
     

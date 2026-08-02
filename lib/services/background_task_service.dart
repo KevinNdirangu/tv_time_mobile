@@ -1,5 +1,6 @@
 import 'package:workmanager/workmanager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
 import 'supabase_service.dart';
 
@@ -10,6 +11,7 @@ void callbackDispatcher() {
     
     // Initialize required services in the background isolate
     await NotificationService.initialize();
+    final prefs = await SharedPreferences.getInstance();
     
     await Supabase.initialize(
       url: 'https://gnwzertrmjerymlzzfuh.supabase.co',
@@ -37,24 +39,35 @@ void callbackDispatcher() {
       final epsToday = List<Map<String, dynamic>>.from(epsRes as List);
       
       final activeShowIdsSet = activeShowIds.toSet();
-      int notificationId = 0;
+      final pushedIds = prefs.getStringList('pushed_notifications') ?? [];
+      bool pushListChanged = false;
       
       for (var ep in epsToday) {
         final showId = ep['show_id'];
         if (activeShowIdsSet.contains(showId)) {
           final show = activeShows.firstWhere((s) => s['id'] == showId);
+          final notifIdStr = 'airing_${showId}_${ep['season_number']}_${ep['episode_number']}';
           
-          final title = "${show['title']} is airing today!";
-          final body = "Season ${ep['season_number']} Episode ${ep['episode_number']} - ${ep['title'] ?? 'TBA'}";
-          final payload = "tvtime://show/${show['api_id']}/${show['type']}";
-          
-          await NotificationService.showNotification(
-            id: notificationId++,
-            title: title,
-            body: body,
-            payload: payload,
-          );
+          if (!pushedIds.contains(notifIdStr)) {
+            final title = "${show['title']} is airing today!";
+            final body = "Season ${ep['season_number']} Episode ${ep['episode_number']} - ${ep['title'] ?? 'TBA'}";
+            final payload = "tvtime://show/${show['api_id']}/${show['type']}";
+            
+            await NotificationService.showNotification(
+              id: notifIdStr.hashCode,
+              title: title,
+              body: body,
+              payload: payload,
+            );
+            
+            pushedIds.add(notifIdStr);
+            pushListChanged = true;
+          }
         }
+      }
+      
+      if (pushListChanged) {
+        await prefs.setStringList('pushed_notifications', pushedIds);
       }
     } catch (e) {
       print("Background task error: $e");
@@ -76,8 +89,8 @@ class BackgroundTaskService {
     await Workmanager().registerPeriodicTask(
       "tv_time_daily_check",
       "check_episodes_task",
-      frequency: const Duration(hours: 24),
-      initialDelay: const Duration(seconds: 10), // Short delay for first run
+      frequency: const Duration(hours: 6),
+      initialDelay: const Duration(minutes: 15), 
       constraints: Constraints(
         networkType: NetworkType.connected,
       ),

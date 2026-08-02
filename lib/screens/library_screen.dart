@@ -141,7 +141,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                       DropdownMenuItem(value: 'titleAsc', child: Text('Title (A-Z)')),
                                       DropdownMenuItem(value: 'addedDesc', child: Text('Recently Added')),
                                       DropdownMenuItem(value: 'episodesDesc', child: Text('Most Watched')),
-                                      DropdownMenuItem(value: 'notWatchedAsc', child: Text('Not Watched First')),
+                                      DropdownMenuItem(value: 'notWatchedAsc', child: Text('Most Unwatched Episodes')),
+                                      DropdownMenuItem(value: 'progressAsc', child: Text('Progress (0% -> 100%)')),
+                                      DropdownMenuItem(value: 'progressDesc', child: Text('Progress (100% -> 0%)')),
+                                      DropdownMenuItem(value: 'missingData', child: Text('Missing Data First (0/0)')),
                                     ],
                                     onChanged: (v) => setState(() => _sort = v!),
                                   ),
@@ -568,9 +571,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       if (_tvFilter == 'watching') {
         filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes < l.airedEpisodes && l.watchedEpisodes > 0).toList();
       } else if (_tvFilter == 'uptodate') {
-        filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes >= l.airedEpisodes && l.show.status != 'Ended' && l.show.status != 'Canceled').toList();
+        filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes >= l.airedEpisodes && l.watchedEpisodes > 0 && l.show.status != 'Ended' && l.show.status != 'Canceled').toList();
       } else if (_tvFilter == 'finished') {
-        filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes >= l.airedEpisodes && (l.show.status == 'Ended' || l.show.status == 'Canceled')).toList();
+        filtered = filtered.where((l) => l.show.isStopped == 0 && l.watchedEpisodes >= l.airedEpisodes && l.watchedEpisodes > 0 && (l.show.status == 'Ended' || l.show.status == 'Canceled')).toList();
       } else if (_tvFilter == 'stopped') {
         filtered = filtered.where((l) => l.show.isStopped == 1).toList();
       } else if (_tvFilter == 'notstarted') {
@@ -596,9 +599,21 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         case 'episodesDesc':
           return b.watchedEpisodes.compareTo(a.watchedEpisodes);
         case 'notWatchedAsc':
-          final aUnseen = a.airedEpisodes - a.watchedEpisodes;
-          final bUnseen = b.airedEpisodes - b.watchedEpisodes;
+          final aUnseen = (a.airedEpisodes - a.watchedEpisodes).clamp(0, 99999);
+          final bUnseen = (b.airedEpisodes - b.watchedEpisodes).clamp(0, 99999);
+          if (aUnseen == bUnseen) return b.watchedEpisodes.compareTo(a.watchedEpisodes);
           return bUnseen.compareTo(aUnseen);
+        case 'progressAsc':
+        case 'progressDesc':
+          final pctA = a.airedEpisodes > 0 ? a.watchedEpisodes / a.airedEpisodes : (a.watchedEpisodes > 0 ? 1.0 : 0.0);
+          final pctB = b.airedEpisodes > 0 ? b.watchedEpisodes / b.airedEpisodes : (b.watchedEpisodes > 0 ? 1.0 : 0.0);
+          if (pctA == pctB) return b.watchedEpisodes.compareTo(a.watchedEpisodes);
+          return _sort == 'progressAsc' ? pctA.compareTo(pctB) : pctB.compareTo(pctA);
+        case 'missingData':
+          final aMissing = a.airedEpisodes == 0 ? 1 : 0;
+          final bMissing = b.airedEpisodes == 0 ? 1 : 0;
+          if (aMissing == bMissing) return a.show.title.compareTo(b.show.title);
+          return bMissing.compareTo(aMissing);
         case 'lastWatchedDesc':
         default:
           final dateA = a.lastWatched != null ? DateTime.parse(a.lastWatched!) : DateTime.fromMillisecondsSinceEpoch(0);

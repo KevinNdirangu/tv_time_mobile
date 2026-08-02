@@ -603,11 +603,11 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Season ${ep['season_number']} Episode ${ep['episode_number']}', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                          Text('Season ${ep['season_number']} Episode ${ep['episode_number']}', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
                           const SizedBox(height: 8),
-                          Text(epTitle, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+                          Text(epTitle, style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
                           const SizedBox(height: 16),
-                          Text(overview, style: const TextStyle(color: AppTheme.textMuted, fontSize: 16, height: 1.5)),
+                          Text(overview, style: TextStyle(color: AppTheme.textMuted, fontSize: 16, height: 1.5)),
                           const SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
@@ -634,5 +634,4 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
       },
     );
   }
-}
 }

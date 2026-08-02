@@ -498,6 +498,20 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
       
       return ListTile(
         title: Text('E${ep['episode_number'].toString().padLeft(2, '0')} $epTitle', style: TextStyle(color: isWatched ? AppTheme.textMuted : AppTheme.textMain)),
+        onTap: hasAired ? () async {
+          // Optimistic update
+          setState(() {
+            if (isWatched) {
+              localData!.watchedEpisodeIds.remove(ep['id']);
+            } else {
+              localData!.watchedEpisodeIds.add(ep['id']);
+              _checkIfFinished();
+            }
+          });
+          await SupabaseActions.toggleWatched(ep['id'], !isWatched);
+          ref.invalidate(showsProvider);
+          ref.invalidate(calendarProvider);
+        } : null,
         onLongPress: () async {
           if (hasAired) {
             await SupabaseActions.markUpTo(localData!.show.id, ep['season_number'], ep['episode_number']);

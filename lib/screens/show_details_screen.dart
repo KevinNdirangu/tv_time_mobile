@@ -201,7 +201,46 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                         ],
                       ],
                     )
-                  else
+                  else if (widget.type == 'movie' && localData != null)
+                    Builder(builder: (context) {
+                      // A movie has exactly one episode (S1E1); check if it's watched
+                      final movieEp = localData!.episodes.isNotEmpty ? localData!.episodes.first : null;
+                      final isWatched = movieEp != null && localData!.watchedEpisodeIds.contains(movieEp['id']);
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: movieEp == null ? null : () async {
+                                final epId = movieEp['id'] as int;
+                                setState(() {
+                                  if (isWatched) {
+                                    localData!.watchedEpisodeIds.remove(epId);
+                                  } else {
+                                    localData!.watchedEpisodeIds.add(epId);
+                                    _confettiController.play();
+                                  }
+                                });
+                                await SupabaseActions.toggleWatched(epId, !isWatched);
+                                ref.invalidate(showsProvider);
+                                ref.invalidate(libraryProvider);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isWatched ? const Color(0xFF34C759).withValues(alpha: 0.15) : const Color(0xFF34C759),
+                                foregroundColor: isWatched ? const Color(0xFF34C759) : Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: isWatched ? const BorderSide(color: Color(0xFF34C759)) : BorderSide.none,
+                                ),
+                              ),
+                              icon: Icon(isWatched ? Icons.check_circle : Icons.check_circle_outline),
+                              label: Text(isWatched ? 'Watched ✓' : 'Mark as Watched', style: const TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      );
+                    })
+                  else if (localData != null)
                     Row(
                       children: [
                         Expanded(

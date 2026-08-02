@@ -126,20 +126,26 @@ class LibraryNotifier extends AsyncNotifier<List<LibraryShow>> {
       final episodes = showEpisodes[s.id] ?? [];
       for (var ep in episodes) {
         if ((ep['season_number'] ?? 0) > 0) {
-          if (ep['air_date'] != null) {
+          bool hasAired = false;
+          if (ep['air_date'] != null && ep['air_date'].toString().isNotEmpty) {
             final airDate = DateTime.tryParse(ep['air_date']);
             if (airDate != null && airDate.compareTo(now) <= 0) {
-              aired++;
+              hasAired = true;
             }
           }
           
           final history = epHistory[ep['id']] ?? [];
           if (history.isNotEmpty) {
             watched++;
+            hasAired = true; // If watched, it must have aired
             runtime += (ep['runtime'] as int? ?? 0);
             final wAt = DateTime.tryParse(history[0]['watched_at'] ?? '')?.millisecondsSinceEpoch ?? 0;
             if (wAt > lastWatched) lastWatched = wAt;
+          } else if (!hasAired && s.type == 'movie' && (ep['air_date'] == null || ep['air_date'].toString().isEmpty)) {
+             hasAired = true; // Movies without release dates are usually old/obscure and released
           }
+
+          if (hasAired) aired++;
         }
       }
 

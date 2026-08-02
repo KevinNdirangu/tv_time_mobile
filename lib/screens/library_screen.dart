@@ -484,7 +484,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                           ),
                           const SizedBox(width: 4),
                           Text(
-                            '${libItem.watchedEpisodes}/${libItem.show.totalEpisodes}',
+                            '${libItem.watchedEpisodes}/${libItem.airedEpisodes}',
                             style: TextStyle(
                               fontSize: 8,
                               color: badgeColor ?? AppTheme.primary,

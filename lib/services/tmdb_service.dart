@@ -34,6 +34,15 @@ class TmdbService {
     return null;
   }
 
+  static Future<Map<String, dynamic>?> getEpisodeDetails(int tmdbId, int seasonNumber, int episodeNumber) async {
+    final url = '$_baseUrl/tv/$tmdbId/season/$seasonNumber/episode/$episodeNumber?api_key=$_apiKey';
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    }
+    return null;
+  }
+
   static Future<List<dynamic>> getTrending({String type = 'all', String genre = 'all', int page = 1}) async {
     if (genre == 'all') {
       if (type == 'anime') {

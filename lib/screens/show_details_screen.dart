@@ -520,32 +520,119 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Marked up to this episode.')));
           }
         },
-        trailing: hasAired 
-          ? IconButton(
-              icon: Icon(
-                isWatched ? Icons.check_circle : Icons.circle_outlined,
-                color: isWatched ? AppTheme.primary : AppTheme.textMuted,
-              ),
-              onPressed: () async {
-                // Optimistic update
-                setState(() {
-                  if (isWatched) {
-                    localData!.watchedEpisodeIds.remove(ep['id']);
-                  } else {
-                    localData!.watchedEpisodeIds.add(ep['id']);
-                    _checkIfFinished();
-                  }
-                });
-                await SupabaseActions.toggleWatched(ep['id'], !isWatched);
-                ref.invalidate(showsProvider);
-                ref.invalidate(calendarProvider);
-              },
-            )
-          : Text(
-              airDateText, 
-              style: const TextStyle(color: AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.bold)
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.info_outline, color: AppTheme.textMuted),
+              onPressed: () => _showEpisodeDetailsModal(ep),
             ),
+            if (hasAired)
+              IconButton(
+                icon: Icon(
+                  isWatched ? Icons.check_circle : Icons.circle_outlined,
+                  color: isWatched ? AppTheme.primary : AppTheme.textMuted,
+                ),
+                onPressed: () async {
+                  // Optimistic update
+                  setState(() {
+                    if (isWatched) {
+                      localData!.watchedEpisodeIds.remove(ep['id']);
+                    } else {
+                      localData!.watchedEpisodeIds.add(ep['id']);
+                      _checkIfFinished();
+                    }
+                  });
+                  await SupabaseActions.toggleWatched(ep['id'], !isWatched);
+                  ref.invalidate(showsProvider);
+                  ref.invalidate(calendarProvider);
+                },
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+                child: Text(
+                  airDateText, 
+                  style: const TextStyle(color: AppTheme.textMuted, fontSize: 12, fontWeight: FontWeight.bold)
+                ),
+              ),
+          ],
+        ),
       );
     }).toList();
   }
+
+  void _showEpisodeDetailsModal(Map<String, dynamic> ep) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      isScrollControlled: true,
+      builder: (context) {
+        return FutureBuilder<Map<String, dynamic>?>(
+          future: TmdbService.getEpisodeDetails(widget.tmdbId, ep['season_number'], ep['episode_number']),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+            }
+            final details = snapshot.data;
+            final epTitle = ep['title'] ?? details?['name'] ?? 'TBA';
+            final overview = details?['overview'] ?? 'No overview available.';
+            final stillPath = details?['still_path'];
+
+            return Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (stillPath != null)
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                        child: Image.network(
+                          'https://image.tmdb.org/t/p/w500$stillPath',
+                          height: 200,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Season ${ep['season_number']} Episode ${ep['episode_number']}', style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 8),
+                          Text(epTitle, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
+                          const SizedBox(height: 16),
+                          Text(overview, style: const TextStyle(color: AppTheme.textMuted, fontSize: 16, height: 1.5)),
+                          const SizedBox(height: 24),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.primary,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
 }

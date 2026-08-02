@@ -2,7 +2,6 @@ import 'package:workmanager/workmanager.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'notification_service.dart';
-import 'supabase_service.dart';
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
@@ -12,6 +11,10 @@ void callbackDispatcher() {
     // Initialize required services in the background isolate
     await NotificationService.initialize();
     final prefs = await SharedPreferences.getInstance();
+    
+    // Respect the user's notification toggle in Settings
+    final notificationsEnabled = prefs.getBool('push_notifications_enabled') ?? true;
+    if (!notificationsEnabled) return Future.value(true);
     
     await Supabase.initialize(
       url: 'https://gnwzertrmjerymlzzfuh.supabase.co',
@@ -26,43 +29,62 @@ void callbackDispatcher() {
       final activeShows = List<Map<String, dynamic>>.from(showsRes as List);
       
       if (activeShows.isEmpty) return Future.value(true);
-      final activeShowIds = activeShows.map((s) => s['id']).toList();
+      final activeShowIdsSet = activeShows.map((s) => s['id']).toSet();
 
-      // 2. Fetch episodes airing today
+      // 2. Compute today and tomorrow date strings
       final now = DateTime.now();
-      final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      final tomorrow = now.add(const Duration(days: 1));
+      String fmtDate(DateTime d) => "${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}";
+      final todayStr = fmtDate(now);
+      final tomorrowStr = fmtDate(tomorrow);
       
+      // 3. Fetch episodes airing today OR tomorrow in one request
       final epsRes = await client.from('episodes')
           .select('id, show_id, season_number, episode_number, title, air_date')
-          .eq('air_date', todayStr);
+          .inFilter('air_date', [todayStr, tomorrowStr]);
           
-      final epsToday = List<Map<String, dynamic>>.from(epsRes as List);
+      final eps = List<Map<String, dynamic>>.from(epsRes as List);
       
-      final activeShowIdsSet = activeShowIds.toSet();
       final pushedIds = prefs.getStringList('pushed_notifications') ?? [];
       bool pushListChanged = false;
       
-      for (var ep in epsToday) {
+      for (var ep in eps) {
         final showId = ep['show_id'];
-        if (activeShowIdsSet.contains(showId)) {
-          final show = activeShows.firstWhere((s) => s['id'] == showId);
-          final notifIdStr = 'airing_${showId}_${ep['season_number']}_${ep['episode_number']}';
-          
-          if (!pushedIds.contains(notifIdStr)) {
-            final title = "${show['title']} is airing today!";
-            final body = "Season ${ep['season_number']} Episode ${ep['episode_number']} - ${ep['title'] ?? 'TBA'}";
-            final payload = "tvtime://show/${show['api_id']}/${show['type']}";
-            
-            await NotificationService.showNotification(
-              id: notifIdStr.hashCode,
-              title: title,
-              body: body,
-              payload: payload,
-            );
-            
-            pushedIds.add(notifIdStr);
-            pushListChanged = true;
+        if (!activeShowIdsSet.contains(showId)) continue;
+        
+        final show = activeShows.firstWhere((s) => s['id'] == showId);
+        final isToday = ep['air_date'] == todayStr;
+        final tag = isToday ? 'today' : 'tomorrow';
+        final notifIdStr = 'airing_${tag}_${showId}_${ep['season_number']}_${ep['episode_number']}';
+        
+        if (!pushedIds.contains(notifIdStr)) {
+          final epName = ep['title'] ?? 'TBA';
+          final s = ep['season_number'];
+          final e = ep['episode_number'];
+          final epCode = "S${s.toString().padLeft(2,'0')}E${e.toString().padLeft(2,'0')}";
+
+          final String title;
+          final String body;
+
+          if (isToday) {
+            title = "📺 Airing Today: ${show['title']}";
+            body = "$epCode - $epName";
+          } else {
+            title = "⏰ Airing Tomorrow: ${show['title']}";
+            body = "$epCode - $epName";
           }
+          
+          final payload = "tvtime://show/${show['api_id']}/${show['type']}";
+          
+          await NotificationService.showNotification(
+            id: notifIdStr.hashCode,
+            title: title,
+            body: body,
+            payload: payload,
+          );
+          
+          pushedIds.add(notifIdStr);
+          pushListChanged = true;
         }
       }
       
@@ -81,7 +103,7 @@ class BackgroundTaskService {
   static Future<void> initialize() async {
     await Workmanager().initialize(
       callbackDispatcher,
-      isInDebugMode: false, // Set to true to see notifications when task is scheduled
+      isInDebugMode: false,
     );
   }
 

@@ -90,7 +90,10 @@ class _MyAppState extends ConsumerState<MyApp> {
     
     // Request Notification Permissions on Android 13+ after app is mounted
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await Permission.notification.request();
+      final status = await Permission.notification.status;
+      if (!status.isGranted) {
+        await Permission.notification.request();
+      }
     });
 
     HomeWidget.widgetClicked.listen((Uri? uri) => _handleWidgetRoute(uri));

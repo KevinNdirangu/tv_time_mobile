@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 import '../models/show.dart';
 import '../models/library_show.dart';
 import 'tmdb_service.dart';
@@ -41,41 +43,45 @@ Future<List<dynamic>> _fetchAll(SupabaseClient client, String table, String sele
 }
 
 class LibraryNotifier extends AsyncNotifier<List<LibraryShow>> {
-  static const _cacheKey = 'tvt_lib_cache';
+  static const _cacheFileName = 'tvt_lib_cache.json';
+
+  Future<File> _getCacheFile() async {
+    final dir = await getApplicationDocumentsDirectory();
+    return File('${dir.path}/$_cacheFileName');
+  }
 
   @override
   Future<List<LibraryShow>> build() async {
-    // 1. Try to load from cache
-    final prefs = await SharedPreferences.getInstance();
-    final cachedStr = prefs.getString(_cacheKey);
-    
-    if (cachedStr != null) {
-      try {
+    // 1. Try to load from local file cache
+    try {
+      final file = await _getCacheFile();
+      if (await file.exists()) {
+        final cachedStr = await file.readAsString();
         final decoded = json.decode(cachedStr) as List;
         final cachedLib = decoded.map((e) => LibraryShow.fromJson(e)).toList();
         
         // 2. Trigger background refresh
-        _refresh(prefs);
+        _refresh();
         return cachedLib;
-      } catch (e) {
-        // Cache invalid or error parsing
       }
+    } catch (e) {
+      // Cache invalid, file missing, or error parsing
     }
     
     // 3. Fallback to normal fetch
-    return _fetchFromNetwork(prefs);
+    return _fetchFromNetwork();
   }
 
-  Future<void> _refresh(SharedPreferences prefs) async {
+  Future<void> _refresh() async {
     try {
-      final fresh = await _fetchFromNetwork(prefs);
+      final fresh = await _fetchFromNetwork();
       state = AsyncData(fresh);
     } catch (e) {
       // Background refresh failed, keep old state
     }
   }
 
-  Future<List<LibraryShow>> _fetchFromNetwork(SharedPreferences prefs) async {
+  Future<List<LibraryShow>> _fetchFromNetwork() async {
     final client = ref.read(supabaseClientProvider);
     
     final results = await Future.wait([
@@ -146,8 +152,19 @@ class LibraryNotifier extends AsyncNotifier<List<LibraryShow>> {
       );
     }).toList();
 
-    // Save to cache
-    await prefs.setString(_cacheKey, json.encode(lib.map((e) => e.toJson()).toList()));
+    // Save to local file cache
+    try {
+      final file = await _getCacheFile();
+      await file.writeAsString(json.encode(lib.map((e) => e.toJson()).toList()));
+      
+      // Clean up old SharedPreferences cache if it exists (migration)
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey('tvt_lib_cache')) {
+        await prefs.remove('tvt_lib_cache');
+      }
+    } catch (e) {
+      print('Failed to save library cache: $e');
+    }
     
     // Update Android Home Screen Widget
     try {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/supabase_service.dart';
 import '../models/library_show.dart';
 import '../theme/app_theme.dart';
@@ -355,12 +356,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: show.posterUrl != null
-                    ? Image.network(
-                        show.posterUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(show.title),
-                      )
+                  child: show.posterUrl != null
+                    ? CachedNetworkImage(
+                          imageUrl: show.posterUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (context, url, error) => _buildPlaceholder(show.title),
+                        )
                     : _buildPlaceholder(show.title),
               ),
             ),

@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -213,12 +214,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     width: itemWidth,
                     height: itemHeight,
                     child: ep.posterUrl != null 
-                        ? Image.network(
-                            ep.posterUrl!, 
+                        ? CachedNetworkImage(
+                            imageUrl: ep.posterUrl!, 
                             width: itemWidth, 
                             height: itemHeight, 
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _buildPlaceholder(ep.showTitle),
+                            errorWidget: (context, url, error) => _buildPlaceholder(ep.showTitle),
                           )
                         : _buildPlaceholder(ep.showTitle),
                   ),

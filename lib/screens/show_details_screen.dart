@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:confetti/confetti.dart';
 import '../services/tmdb_service.dart';
@@ -105,8 +106,8 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                 style: const TextStyle(fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black, blurRadius: 10)]),
               ),
               background: backdrop != null
-                  ? Image.network(
-                      'https://image.tmdb.org/t/p/w780$backdrop',
+                  ? CachedNetworkImage(
+                      imageUrl: 'https://image.tmdb.org/t/p/w780$backdrop',
                       fit: BoxFit.cover,
                       color: Colors.black.withValues(alpha: 0.4),
                       colorBlendMode: BlendMode.darken,
@@ -374,12 +375,13 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: posterPath != null
-                          ? Image.network(
-                              'https://image.tmdb.org/t/p/w200$posterPath',
-                              width: 100,
-                              height: 150,
-                              fit: BoxFit.cover,
-                            )
+                          ? CachedNetworkImage(
+                                imageUrl: 'https://image.tmdb.org/t/p/w200$posterPath',
+                                width: 100,
+                                height: 150,
+                                fit: BoxFit.cover,
+                                errorWidget: (context, url, error) => Container(width: 100, height: 150, color: AppTheme.surfaceLight, child: const Icon(Icons.tv_rounded, color: Colors.white24)),
+                              )
                           : Container(width: 100, height: 150, color: AppTheme.surfaceLight),
                     ),
                     const SizedBox(height: 4),

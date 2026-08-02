@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/app_theme.dart';
 import '../services/tmdb_service.dart';
 import '../services/supabase_service.dart';
@@ -399,12 +400,12 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                                     Positioned.fill(
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(12),
-                                        child: posterPath != null
-                                            ? Image.network(
-                                                'https://image.tmdb.org/t/p/w300$posterPath', 
-                                                fit: BoxFit.cover,
-                                                errorBuilder: (context, error, stackTrace) => _buildPlaceholder(title),
-                                              )
+                                          child: posterPath != null
+                                            ? CachedNetworkImage(
+                                                  imageUrl: 'https://image.tmdb.org/t/p/w300$posterPath', 
+                                                  fit: BoxFit.cover,
+                                                  errorWidget: (context, url, error) => _buildPlaceholder(title),
+                                                )
                                             : _buildPlaceholder(title),
                                       ),
                                     ),

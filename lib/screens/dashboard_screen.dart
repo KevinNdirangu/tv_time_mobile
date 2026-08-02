@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../services/supabase_service.dart';
 import '../models/library_show.dart';
 import '../theme/app_theme.dart';
@@ -367,7 +368,12 @@ class _LibraryCarousel extends StatelessWidget {
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: item.show.posterUrl != null
-                            ? Image.network(item.show.posterUrl!, fit: BoxFit.cover, width: double.infinity)
+                            ? CachedNetworkImage(
+                                imageUrl: item.show.posterUrl!, 
+                                fit: BoxFit.cover, 
+                                width: double.infinity,
+                                errorWidget: (context, url, error) => Container(color: AppTheme.surfaceLight, child: const Icon(Icons.tv_rounded, color: Colors.white24)),
+                              )
                             : Container(color: AppTheme.surfaceLight, child: const Icon(Icons.tv_rounded, color: Colors.white24)),
                       ),
                     ),
@@ -459,7 +465,12 @@ class _CalendarCarousel extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: ep.posterUrl != null
-                      ? Image.network(ep.posterUrl!, fit: BoxFit.cover, width: double.infinity)
+                      ? CachedNetworkImage(
+                          imageUrl: ep.posterUrl!, 
+                          fit: BoxFit.cover, 
+                          width: double.infinity,
+                          errorWidget: (context, url, error) => Container(color: AppTheme.surfaceLight, child: const Icon(Icons.calendar_today_rounded, color: Colors.white24)),
+                        )
                       : Container(color: AppTheme.surfaceLight, child: const Icon(Icons.calendar_today_rounded, color: Colors.white24)),
                 ),
               ),

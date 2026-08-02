@@ -16,10 +16,12 @@ final showsProvider = FutureProvider<List<Show>>((ref) async {
   final client = ref.read(supabaseClientProvider);
   
   // Wait for the query to complete
-  final response = await client.from('shows').select('*').order('id', ascending: false);
+  final response = await _fetchAll(client, 'shows', '*');
   
   // Map the JSON objects to Show model
-  return (response as List<dynamic>).map((e) => Show.fromJson(e)).toList();
+  final shows = response.map((e) => Show.fromJson(e)).toList();
+  shows.sort((a, b) => b.id.compareTo(a.id));
+  return shows;
 });
 
 Future<List<dynamic>> _fetchAll(SupabaseClient client, String table, String selectColumns) async {
@@ -28,7 +30,7 @@ Future<List<dynamic>> _fetchAll(SupabaseClient client, String table, String sele
   List<dynamic> allData = [];
   
   while (true) {
-    final response = await client.from(table).select(selectColumns).range(from, from + step - 1);
+    final response = await client.from(table).select(selectColumns).order('id', ascending: true).range(from, from + step - 1);
     final data = response as List<dynamic>;
     allData.addAll(data);
     if (data.length < step) break;

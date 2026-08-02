@@ -17,7 +17,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
 }
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
-  bool _hidePast = true; // Default to hiding past
+  bool _hidePast = false; // Default to showing past 30 days to match website
   final ScrollController _scrollController = ScrollController();
 
   @override

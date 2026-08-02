@@ -462,38 +462,52 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Expanded(
-                            child: Container(
-                              height: 3,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(1.5),
-                              ),
-                              child: FractionallySizedBox(
-                                alignment: Alignment.centerLeft,
-                                widthFactor: (libItem.airedEpisodes > 0) ? (libItem.watchedEpisodes / libItem.airedEpisodes).clamp(0.0, 1.0) : 0,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: badgeColor ?? AppTheme.primary,
-                                    borderRadius: BorderRadius.circular(1.5),
-                                    boxShadow: [
-                                      if (badgeColor != null)
-                                        BoxShadow(color: badgeColor.withValues(alpha: 0.5), blurRadius: 4)
-                                    ],
+                          if (libItem.airedEpisodes > 0) ...[
+                            Expanded(
+                              child: Container(
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(1.5),
+                                ),
+                                child: FractionallySizedBox(
+                                  alignment: Alignment.centerLeft,
+                                  widthFactor: (libItem.watchedEpisodes / libItem.airedEpisodes).clamp(0.0, 1.0),
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: badgeColor ?? AppTheme.primary,
+                                      borderRadius: BorderRadius.circular(1.5),
+                                      boxShadow: [
+                                        if (badgeColor != null)
+                                          BoxShadow(color: badgeColor.withValues(alpha: 0.5), blurRadius: 4)
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${libItem.watchedEpisodes}/${libItem.airedEpisodes}',
-                            style: TextStyle(
-                              fontSize: 8,
-                              color: badgeColor ?? AppTheme.primary,
-                              fontWeight: FontWeight.bold,
+                            const SizedBox(width: 4),
+                            Text(
+                              '${libItem.watchedEpisodes}/${libItem.airedEpisodes}',
+                              style: TextStyle(
+                                fontSize: 8,
+                                color: badgeColor ?? AppTheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
+                          ] else
+                            Expanded(
+                              child: Text(
+                                show.status ?? 'TBA',
+                                textAlign: TextAlign.right,
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  color: AppTheme.textMuted,
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
                         ],
                       ),
                     ],

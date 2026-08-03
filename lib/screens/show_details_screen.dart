@@ -210,7 +210,19 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: movieEp == null ? null : () async {
+                              onPressed: _isAddingMedia ? null : () async {
+                                if (movieEp == null) {
+                                  // Repair broken legacy movies
+                                  setState(() => _isAddingMedia = true);
+                                  await SupabaseActions.addMedia(widget.tmdbId, widget.type, markSeen: true);
+                                  await _fetchData();
+                                  ref.invalidate(showsProvider);
+                                  ref.invalidate(libraryProvider);
+                                  setState(() => _isAddingMedia = false);
+                                  _confettiController.play();
+                                  return;
+                                }
+                                
                                 final epId = movieEp['id'] as int;
                                 setState(() {
                                   if (isWatched) {
@@ -233,7 +245,9 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                                   side: isWatched ? const BorderSide(color: Color(0xFF34C759)) : BorderSide.none,
                                 ),
                               ),
-                              icon: Icon(isWatched ? Icons.check_circle : Icons.check_circle_outline),
+                              icon: _isAddingMedia 
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                  : Icon(isWatched ? Icons.check_circle : Icons.check_circle_outline),
                               label: Text(isWatched ? 'Watched ✓' : 'Mark as Watched', style: const TextStyle(fontWeight: FontWeight.bold)),
                             ),
                           ),

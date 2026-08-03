@@ -837,4 +837,39 @@ class SupabaseActions {
       }
     }
   }
+
+  static Future<int> repairAllLegacyMovies() async {
+    final client = Supabase.instance.client;
+    
+    // 1. Fetch all movies
+    final moviesRes = await client.from('shows').select('id, api_id, title').eq('type', 'movie');
+    final movies = List<Map<String, dynamic>>.from(moviesRes as List);
+    
+    if (movies.isEmpty) return 0;
+    final movieIds = movies.map((m) => m['id']).toList();
+    
+    // 2. Fetch all episodes for these movies
+    final epsRes = await client.from('episodes').select('show_id').inFilter('show_id', movieIds);
+    final eps = List<Map<String, dynamic>>.from(epsRes as List);
+    
+    // 3. Find movies with ZERO episodes
+    final Set<int> showsWithEpisodes = eps.map((e) => e['show_id'] as int).toSet();
+    final missingMovies = movies.where((m) => !showsWithEpisodes.contains(m['id'])).toList();
+    
+    if (missingMovies.isEmpty) return 0;
+    
+    // 4. Repair them
+    int repairedCount = 0;
+    for (var m in missingMovies) {
+      try {
+        print("Repairing movie: ${m['title']}");
+        await addMedia(m['api_id'], 'movie', markSeen: false);
+        repairedCount++;
+      } catch (e) {
+        print("Error repairing movie ${m['title']}: $e");
+      }
+    }
+    
+    return repairedCount;
+  }
 }

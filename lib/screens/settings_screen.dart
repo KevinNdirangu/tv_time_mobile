@@ -342,6 +342,32 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: 'Spreadsheet-compatible export of your shows list.',
                 onTap: exportCsv,
               ),
+              _Divider(),
+              _ActionRow(
+                icon: Icons.build_rounded,
+                iconColor: const Color(0xFFFF9F0A),
+                title: 'Repair Legacy Movies',
+                subtitle: 'Automatically fix broken movies in your library.',
+                onTap: () async {
+                  if (!context.mounted) return;
+                  _snack(context, 'Scanning for broken movies...');
+                  try {
+                    final repaired = await SupabaseActions.repairAllLegacyMovies();
+                    if (!context.mounted) return;
+                    
+                    if (repaired > 0) {
+                      _snack(context, 'Success! Repaired $repaired legacy movie(s).');
+                      ref.invalidate(showsProvider);
+                      ref.invalidate(libraryProvider);
+                    } else {
+                      _snack(context, 'All your movies are already in perfect condition!');
+                    }
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    _snack(context, 'Repair failed: $e');
+                  }
+                },
+              ),
             ]),
 
             // ── CLOUD CALENDAR ────────────────────────────────────────────────

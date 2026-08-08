@@ -83,6 +83,78 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
     });
   }
 
+  Future<void> _triggerMemoryRefresh() async {
+    if (localData == null) return;
+    final hasKey = await AiService.hasKey();
+    if (!hasKey) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please set your Groq API key in Settings first.')));
+      }
+      return;
+    }
+
+    final watchedEps = localData!.episodes.where((ep) => localData!.watchedEpisodeIds.contains(ep['id'])).toList();
+    if (watchedEps.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You haven\'t logged any episodes yet.')));
+      }
+      return;
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surface,
+        title: Text('🧠 Memory Refresh: ${localData!.show.title}', style: const TextStyle(color: Colors.white, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(color: AppTheme.primary),
+            const SizedBox(height: 16),
+            const Text('Analyzing story arc...', style: TextStyle(color: AppTheme.textMuted)),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final recap = await AiService.generateRecap(localData!.show.title, watchedEps);
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.5,
+          maxChildSize: 0.9,
+          builder: (_, controller) => Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: AppTheme.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: ListView(
+              controller: controller,
+              children: [
+                const Text('✨ Spoiler-Free Recap', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                const SizedBox(height: 16),
+                Text(recap.replaceAll('**', ''), style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.5)),
+              ],
+            ),
+          ),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading dialog
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -335,6 +407,21 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                       ((tmdbData!['genres'] as List).map((g) => g['name']).join(', ')),
                       style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
                     ),
+                  if (localData?.show.customTags != null && localData!.show.customTags!.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: localData!.show.customTags!.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).map((tag) => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text('✨ $tag', style: const TextStyle(color: Colors.black, fontSize: 11, fontWeight: FontWeight.bold)),
+                      )).toList(),
+                    ),
+                  ],
 
                   const SizedBox(height: 24),
                   const Text('Overview', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
@@ -347,6 +434,21 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                     ..._buildTrailerButton(tmdbData!['videos']['results']),
 
                   if (widget.type == 'tv' && localData != null) ...[
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => _triggerMemoryRefresh(),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFA5A6F6),
+                          foregroundColor: Colors.black,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Text('🧠', style: TextStyle(fontSize: 18)),
+                        label: const Text('Memory Refresh', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     const Text('Seasons', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
                     const SizedBox(height: 16),
                     _buildSeasonsList(),

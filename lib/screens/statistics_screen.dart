@@ -225,9 +225,9 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                             ElevatedButton(
                               onPressed: () {
                                 _generateRecap({
-                                  'timeWatched': '\$mo months, \$d days, \$h hours',
-                                  'episodesLogged': '\$tvSeen',
-                                  'moviesWatched': '\$moviesSeen',
+                                  'timeWatched': '$mo months, $d days, $h hours',
+                                  'episodesLogged': '$tvSeen',
+                                  'moviesWatched': '$moviesSeen',
                                   'topShows': topShows.take(5).map((s) => s['title']).toList(),
                                   'topGenres': top10Genres.take(3).map((g) => g.key).toList(),
                                 });

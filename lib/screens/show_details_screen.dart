@@ -38,6 +38,15 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
     super.dispose();
   }
 
+  String _formatDate(String isoString) {
+    try {
+      final date = DateTime.parse(isoString);
+      return '${date.month}/${date.day}/${date.year}';
+    } catch (e) {
+      return isoString;
+    }
+  }
+
   void _checkIfFinished() {
     if (localData == null || tmdbData == null) return;
     if (tmdbData!['status'] != 'Ended' && tmdbData!['status'] != 'Canceled') return;
@@ -148,8 +157,24 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Action Buttons
-                  if (localData == null)
+                // Seen Date
+                if (localData?.lastWatched != null && localData!.watchedEpisodeIds.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 16, color: AppTheme.primary),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Seen on: ${_formatDate(localData!.lastWatched!)}',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Action Buttons
+                if (localData == null)
                     Row(
                       children: [
                         if (widget.type == 'movie') ...[

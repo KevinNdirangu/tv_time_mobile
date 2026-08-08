@@ -276,11 +276,13 @@ class SupabaseShowDetails {
   final Show show;
   final List<Map<String, dynamic>> episodes;
   final List<int> watchedEpisodeIds;
+  final String? lastWatched;
 
   SupabaseShowDetails({
     required this.show,
     required this.episodes,
     required this.watchedEpisodeIds,
+    this.lastWatched,
   });
 }
 
@@ -305,10 +307,19 @@ class SupabaseActions {
     }
     
     // Chunking might be needed for very large arrays, but in in operator 200-300 is fine
-    final watchRes = await client.from('watch_history').select('episode_id').filter('episode_id', 'in', epIds);
-    final watchedIds = (watchRes as List).map((e) => e['episode_id'] as int).toList();
+    final watchRes = await client.from('watch_history').select('episode_id, watched_at').filter('episode_id', 'in', epIds);
+    final watchedIds = <int>[];
+    String? latestWatched;
+    for (var row in (watchRes as List)) {
+      watchedIds.add(row['episode_id'] as int);
+      if (row['watched_at'] != null) {
+        if (latestWatched == null || DateTime.parse(row['watched_at']).isAfter(DateTime.parse(latestWatched))) {
+          latestWatched = row['watched_at'];
+        }
+      }
+    }
     
-    return SupabaseShowDetails(show: show, episodes: episodes, watchedEpisodeIds: watchedIds);
+    return SupabaseShowDetails(show: show, episodes: episodes, watchedEpisodeIds: watchedIds, lastWatched: latestWatched);
   }
 
   static Future<void> syncActiveShows(List<Show> activeShows) async {

@@ -368,6 +368,18 @@ class SettingsScreen extends ConsumerWidget {
                   }
                 },
               ),
+              _Divider(),
+              _ActionRow(
+                icon: Icons.calendar_today_rounded,
+                iconColor: const Color(0xFFaf52de),
+                title: 'Sync Seen Dates',
+                subtitle: 'Refresh all cached dates from watch history.',
+                onTap: () async {
+                  _snack(context, 'Refreshing dates...');
+                  ref.invalidate(libraryProvider);
+                  if (context.mounted) _snack(context, '✓ Seen dates refreshed!');
+                },
+              ),
             ]),
 
             // ── CLOUD CALENDAR ────────────────────────────────────────────────

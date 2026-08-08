@@ -16,6 +16,7 @@ import '../providers/notifications_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/supabase_service.dart';
 import '../services/notification_service.dart';
+import '../services/ai_service.dart';
 import '../main.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -248,6 +249,10 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ]),
+
+            // ── AI CONFIGURATION ─────────────────────────────────────────────
+            _SectionLabel(label: 'AI Configuration'),
+            const _AiConfigSection(),
 
             // ── TIMEZONE ─────────────────────────────────────────────────────
             _SectionLabel(label: 'Timezone'),
@@ -731,4 +736,98 @@ class _NotificationRowState extends State<_NotificationRow> with WidgetsBindingO
     );
   }
 }
+
+class _AiConfigSection extends StatefulWidget {
+  const _AiConfigSection();
+
+  @override
+  State<_AiConfigSection> createState() => _AiConfigSectionState();
+}
+
+class _AiConfigSectionState extends State<_AiConfigSection> {
+  final _controller = TextEditingController();
+  bool _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadKey();
+  }
+
+  Future<void> _loadKey() async {
+    final key = await AiService.getApiKey();
+    if (key != null) {
+      _controller.text = key;
+    }
+  }
+
+  Future<void> _saveKey() async {
+    await AiService.saveApiKey(_controller.text.trim());
+    setState(() {
+      _saved = true;
+    });
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _saved = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _SettingsGroup(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter your Google Gemini API key to enable AI Recaps, Smart Search, and Auto-Tagging.',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _controller,
+                obscureText: true,
+                style: const TextStyle(color: AppTheme.textMain),
+                decoration: InputDecoration(
+                  hintText: 'AIza...',
+                  hintStyle: const TextStyle(color: AppTheme.textMuted),
+                  filled: true,
+                  fillColor: AppTheme.surfaceLight,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.surfaceLight,
+                    foregroundColor: AppTheme.textMain,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  onPressed: _saveKey,
+                  child: const Text('Save API Key', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+              if (_saved)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Center(
+                    child: Text('Saved successfully!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 

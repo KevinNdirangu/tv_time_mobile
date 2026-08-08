@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:confetti/confetti.dart';
 import '../services/tmdb_service.dart';
 import '../services/supabase_service.dart';
+import '../services/ai_service.dart';
 import '../models/show.dart';
 import '../theme/app_theme.dart';
 
@@ -685,6 +686,13 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                           const SizedBox(height: 16),
                           Text(overview, style: TextStyle(color: AppTheme.textMuted, fontSize: 16, height: 1.5)),
                           const SizedBox(height: 24),
+                          if (localData != null)
+                            _AiRecapWidget(
+                              localData: localData!,
+                              seasonNum: ep['season_number'],
+                              epNum: ep['episode_number'],
+                            ),
+                          const SizedBox(height: 12),
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
@@ -708,6 +716,96 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
           },
         );
       },
+    );
+  }
+}
+
+class _AiRecapWidget extends StatefulWidget {
+  final SupabaseShowDetails localData;
+  final int seasonNum;
+  final int epNum;
+
+  const _AiRecapWidget({required this.localData, required this.seasonNum, required this.epNum});
+
+  @override
+  State<_AiRecapWidget> createState() => _AiRecapWidgetState();
+}
+
+class _AiRecapWidgetState extends State<_AiRecapWidget> {
+  bool _isLoading = false;
+  String? _recap;
+  bool _hasKey = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkKey();
+  }
+
+  Future<void> _checkKey() async {
+    final key = await AiService.getApiKey();
+    if (mounted && key != null && key.isNotEmpty) {
+      setState(() => _hasKey = true);
+    }
+  }
+
+  Future<void> _generate() async {
+    setState(() => _isLoading = true);
+    try {
+      final eps = widget.localData.episodes.where((e) {
+        if (!widget.localData.watchedEpisodeIds.contains(e['id'])) return false;
+        if (e['season_number'] < widget.seasonNum) return true;
+        if (e['season_number'] == widget.seasonNum && e['episode_number'] < widget.epNum) return true;
+        return false;
+      }).toList();
+
+      if (eps.isEmpty) {
+        setState(() {
+          _recap = "You haven't watched any episodes prior to this one, so there's nothing to recap yet!";
+          _isLoading = false;
+        });
+        return;
+      }
+
+      final res = await AiService.generateRecap(widget.localData.show.title, eps);
+      if (mounted) setState(() { _recap = res; _isLoading = false; });
+    } catch (e) {
+      if (mounted) setState(() { _recap = "Error: \$e"; _isLoading = false; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_hasKey) return const SizedBox.shrink();
+
+    if (_recap != null) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: const Color(0xFF1a1a2e), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFF4a4e69))),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('✨ AI Season Recap', style: TextStyle(color: Color(0xFFa5a6f6), fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 8),
+            Text(_recap!, style: const TextStyle(color: AppTheme.textMuted, height: 1.5)),
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFFa5a6f6),
+          foregroundColor: Colors.black,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)) : const Icon(Icons.auto_awesome),
+        label: Text(_isLoading ? 'Generating Recap...' : 'Generate AI Recap', style: const TextStyle(fontWeight: FontWeight.bold)),
+        onPressed: _isLoading ? null : _generate,
+      ),
     );
   }
 }

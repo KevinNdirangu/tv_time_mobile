@@ -9,6 +9,7 @@ import '../models/show.dart';
 import '../models/library_show.dart';
 import 'tmdb_service.dart';
 import 'widget_service.dart';
+import 'ai_service.dart';
 
 final supabaseClientProvider = Provider<SupabaseClient>((ref) {
   return Supabase.instance.client;
@@ -781,6 +782,12 @@ class SupabaseActions {
       // Calculate next ID
       final maxIdData = await client.from('shows').select('id').order('id', ascending: false).limit(1).maybeSingle();
       final nextShowId = (maxIdData != null ? maxIdData['id'] as int : 0) + 1;
+      
+      String autoTags = '';
+      final hasAiKey = (await AiService.getApiKey()) != null;
+      if (hasAiKey) {
+        autoTags = await AiService.autoTag(data['title'] ?? data['name'], data['overview'] ?? '', ((data['genres'] ?? []) as List).map((g) => g['name']).join(', '));
+      }
 
       final insertData = {
         'id': nextShowId,
@@ -793,6 +800,7 @@ class SupabaseActions {
         'status': data['status'],
         'type': type,
         'timezone_offset': shouldShift ? 1 : 0,
+        'custom_tags': autoTags,
       };
 
       final res = await client.from('shows').insert(insertData).select().single();

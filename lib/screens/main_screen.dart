@@ -7,6 +7,7 @@ import 'calendar_screen.dart';
 import 'discover_screen.dart';
 import 'statistics_screen.dart';
 import 'settings_screen.dart';
+import 'ai_assistant_screen.dart';
 import 'notifications_drawer.dart';
 import 'navigation_drawer.dart';
 import '../providers/navigation_provider.dart';
@@ -19,8 +20,9 @@ class MainScreen extends ConsumerWidget {
     DiscoverScreen(),
     CalendarScreen(),
     LibraryScreen(),
+    const AiAssistantScreen(),
     StatisticsScreen(),
-    SettingsScreen(),
+    const SettingsScreen(),
   ];
 
   @override
@@ -33,7 +35,7 @@ class MainScreen extends ConsumerWidget {
       drawer: const GlobalNavigationDrawer(),
       endDrawer: const NotificationsDrawer(),
       body: _screens[safeIndex],
-      bottomNavigationBar: safeIndex < 4 ? BottomNavigationBar(
+      bottomNavigationBar: safeIndex < 5 ? BottomNavigationBar(
         currentIndex: safeIndex,
         onTap: (index) {
           ref.read(currentTabProvider.notifier).state = index;
@@ -54,6 +56,10 @@ class MainScreen extends ConsumerWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.video_library_rounded),
             label: 'Library',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.auto_awesome),
+            label: 'AI',
           ),
         ],
       ) : null,

@@ -39,9 +39,10 @@ class GlobalNavigationDrawer extends ConsumerWidget {
             buildItem(Icons.explore_rounded, 'Discover', 1),
             buildItem(Icons.calendar_month_rounded, 'Calendar', 2),
             buildItem(Icons.video_library_rounded, 'Library', 3),
+            buildItem(Icons.auto_awesome, 'AI Insights', 4),
             const Divider(color: AppTheme.surfaceLight, height: 1),
-            buildItem(Icons.bar_chart_rounded, 'Statistics', 4),
-            buildItem(Icons.settings_rounded, 'Settings', 5),
+            buildItem(Icons.bar_chart_rounded, 'Statistics', 5),
+            buildItem(Icons.settings_rounded, 'Settings', 6),
             const Divider(color: AppTheme.surfaceLight, height: 1),
             ListTile(
               leading: const Icon(Icons.notifications_rounded, color: AppTheme.textMuted),

@@ -157,22 +157,6 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                // Seen Date
-                if (localData?.lastWatched != null && localData!.watchedEpisodeIds.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today, size: 16, color: AppTheme.primary),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Seen on: ${_formatDate(localData!.lastWatched!)}',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-
                 // Action Buttons
                 if (localData == null)
                     Row(
@@ -323,6 +307,15 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                           style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16),
                         ),
                         const Text(' / 10', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                      ],
+                      if (localData?.lastWatched != null && localData!.watchedEpisodeIds.isNotEmpty) ...[
+                        const SizedBox(width: 16),
+                        const Icon(Icons.calendar_today, size: 14, color: AppTheme.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${_formatDate(localData!.lastWatched!)}',
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
                       ],
                       if (tmdbData!['status'] != null) ...[
                         const SizedBox(width: 16),

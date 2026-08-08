@@ -467,10 +467,10 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (isMovie && libItem.watchedEpisodes > 0 && libItem.lastWatched != null) ...[
+                    if (libItem.watchedEpisodes > 0 && libItem.lastWatched != null) ...[
                       const SizedBox(height: 4),
                       Text(
-                        'Seen: ${_formatDate(libItem.lastWatched!)}',
+                        isMovie ? 'Seen: ${_formatDate(libItem.lastWatched!)}' : 'Last watched: ${_formatDate(libItem.lastWatched!)}',
                         style: const TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ],

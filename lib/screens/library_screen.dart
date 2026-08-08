@@ -27,7 +27,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _formatDate(String isoString) {
     try {
       final date = DateTime.parse(isoString);
-      return '${date.month}/${date.day}/${date.year}';
+      final dd = date.day.toString().padLeft(2, '0');
+      final mm = date.month.toString().padLeft(2, '0');
+      return '$dd/$mm/${date.year}';
     } catch (e) {
       return isoString;
     }

@@ -23,6 +23,15 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String _sort = 'lastWatchedDesc';
   String _genre = 'all';
   String _search = '';
+  
+  String _formatDate(String isoString) {
+    try {
+      final date = DateTime.parse(isoString);
+      return '${date.month}/${date.day}/${date.year}';
+    } catch (e) {
+      return isoString;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -458,6 +467,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    if (isMovie && libItem.watchedEpisodes > 0 && libItem.lastWatched != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Seen: ${_formatDate(libItem.lastWatched!)}',
+                        style: const TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                      ),
+                    ],
                     if (!isMovie) ...[
                       const SizedBox(height: 4),
                       Row(

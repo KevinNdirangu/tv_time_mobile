@@ -55,16 +55,13 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
 
     try {
       final shows = ref.read(showsProvider).value ?? [];
-      final simplifiedLib = shows.map((s) => {
-        'title': s.title,
-        'type': s.type,
-        'genre': s.genre,
-        'tags': s.customTags,
-        'status': s.status,
-        'rating': s.userRating,
-      }).toList();
+      final compactLibList = shows.map((s) => '${s.title}|${s.status}|${s.userRating}|${s.customTags}').toList();
+      String compactLib = compactLibList.join('\n');
+      if (compactLib.length > 15000) {
+        compactLib = '${compactLib.substring(0, 15000)}\n...[TRUNCATED]';
+      }
       
-      final response = await AiService.chatWithLibrary(text, jsonEncode(simplifiedLib));
+      final response = await AiService.chatWithLibrary(text, compactLib);
       if (mounted) {
         setState(() {
           _messages.add({'role': 'assistant', 'text': response});

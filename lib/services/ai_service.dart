@@ -66,11 +66,11 @@ Output ONLY the comma-separated tags, nothing else.''';
     }
   }
 
-  static Future<String> chatWithLibrary(String query, String libraryJson) async {
-    final prompt = '''You are a helpful AI TV/Movie assistant inside a tracking app. The user has the following library data (JSON format):
-$libraryJson
+  static Future<String> chatWithLibrary(String query, String libraryData) async {
+    final prompt = '''You are a helpful AI TV/Movie assistant inside a tracking app. The user has the following library data (Title|Status|Rating|Tags):
+$libraryData
 The user says: "$query"
-Answer their query conversationally based on their library data. Do not show the JSON. Format output in Markdown.''';
+Answer their query conversationally based on their library data. Do not show the raw data format. Format output in Markdown.''';
     return await callGroq(prompt);
   }
 }

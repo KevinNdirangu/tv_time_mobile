@@ -785,35 +785,38 @@ class _AiConfigSectionState extends State<_AiConfigSection> {
                 style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _controller,
-                obscureText: true,
-                style: const TextStyle(color: AppTheme.textMain),
-                decoration: InputDecoration(
-                  hintText: 'gsk_...',
-                  hintStyle: const TextStyle(color: AppTheme.textMuted),
-                  filled: true,
-                  fillColor: AppTheme.surfaceLight,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide.none,
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      obscureText: true,
+                      style: const TextStyle(color: AppTheme.textMain),
+                      decoration: InputDecoration(
+                        hintText: 'gsk_...',
+                        hintStyle: const TextStyle(color: AppTheme.textMuted),
+                        filled: true,
+                        fillColor: AppTheme.surfaceLight,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      ),
+                    ),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.surfaceLight,
-                    foregroundColor: AppTheme.textMain,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.surfaceLight,
+                      foregroundColor: AppTheme.textMain,
+                      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    onPressed: _saveKey,
+                    child: const Text('Save', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
-                  onPressed: _saveKey,
-                  child: const Text('Save API Key', style: TextStyle(fontWeight: FontWeight.bold)),
-                ),
+                ],
               ),
               if (_saved)
                 const Padding(

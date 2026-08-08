@@ -21,6 +21,7 @@ class DiscoverScreen extends ConsumerStatefulWidget {
 class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _aiSearchController = TextEditingController();
+  List<String> _aiExistingTitles = [];
   Timer? _debounce;
   List<dynamic> _results = [];
   bool _isLoading = true;
@@ -78,7 +79,15 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       while (validCount < targetCount && _page <= 20) {
         _page++;
         List<dynamic> newResults = [];
-        if (_searchController.text.trim().isEmpty) {
+        if (_aiSearchController.text.trim().isNotEmpty) {
+          final titles = await AiService.smartSearch(_aiSearchController.text.trim(), existingTitles: _aiExistingTitles);
+          if (titles.isEmpty) break;
+          _aiExistingTitles.addAll(titles);
+          for (final t in titles) {
+            final res = await TmdbService.search(t, page: 1);
+            if (res.isNotEmpty) newResults.add(res.first);
+          }
+        } else if (_searchController.text.trim().isEmpty) {
           newResults = await TmdbService.getTrending(type: _currentType, genre: _currentGenre, page: _page);
         } else {
           newResults = await TmdbService.search(_searchController.text.trim(), page: _page);
@@ -144,6 +153,8 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
           _isLoading = true;
           _page = 1;
           _results.clear();
+          _aiSearchController.clear();
+          _aiExistingTitles.clear();
         });
         
         final libraryAsync = ref.read(libraryProvider);
@@ -189,6 +200,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
       _isLoading = true;
       _page = 1;
       _results.clear();
+      _aiExistingTitles.clear();
       _searchController.clear(); // clear standard search
     });
 
@@ -212,6 +224,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
 
       if (mounted) {
         setState(() {
+          _aiExistingTitles.addAll(titles);
           _results = aiResults;
           _isLoading = false;
         });

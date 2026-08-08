@@ -737,14 +737,14 @@ class _NotificationRowState extends State<_NotificationRow> with WidgetsBindingO
   }
 }
 
-class _AiConfigSection extends StatefulWidget {
+class _AiConfigSection extends ConsumerStatefulWidget {
   const _AiConfigSection();
 
   @override
-  State<_AiConfigSection> createState() => _AiConfigSectionState();
+  ConsumerState<_AiConfigSection> createState() => _AiConfigSectionState();
 }
 
-class _AiConfigSectionState extends State<_AiConfigSection> {
+class _AiConfigSectionState extends ConsumerState<_AiConfigSection> {
   final _controller = TextEditingController();
   bool _saved = false;
 
@@ -780,6 +780,17 @@ class _AiConfigSectionState extends State<_AiConfigSection> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Enable AI Features', style: TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.bold)),
+                subtitle: const Text('Smart Search, Recaps, Auto-Tagging', style: TextStyle(color: AppTheme.textMuted, fontSize: 13)),
+                activeColor: AppTheme.primary,
+                value: ref.watch(aiEnabledProvider),
+                onChanged: (val) {
+                  ref.read(aiEnabledProvider.notifier).toggle(val);
+                },
+              ),
+              const Divider(color: AppTheme.surfaceLight, height: 24),
               const Text(
                 'Enter your Groq API key to enable AI Recaps, Smart Search, and Auto-Tagging.',
                 style: TextStyle(color: AppTheme.textMuted, fontSize: 13),

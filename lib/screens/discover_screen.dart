@@ -9,6 +9,7 @@ import 'show_details_screen.dart';
 import 'notifications_drawer.dart';
 import 'navigation_drawer.dart';
 import '../providers/notifications_provider.dart';
+import '../providers/settings_provider.dart';
 import '../services/ai_service.dart';
 
 class DiscoverScreen extends ConsumerStatefulWidget {
@@ -251,6 +252,7 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
     final libraryAsync = ref.watch(libraryProvider);
     final localApiIds = libraryAsync.asData?.value.map((s) => s.show.apiId).toSet() ?? {};
     final filteredResults = _results.where((item) => !localApiIds.contains(item['id'])).toList();
+    final aiEnabled = ref.watch(aiEnabledProvider);
 
     return Scaffold(
       drawer: const GlobalNavigationDrawer(),
@@ -313,33 +315,34 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
               child: Column(
                 children: [
                   // AI Search Bar
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _aiSearchController,
-                      onSubmitted: _onAiSearchSubmit,
-                      style: const TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.w500),
-                      decoration: InputDecoration(
-                        hintText: '✨ Describe a vibe or plot...',
-                        hintStyle: TextStyle(color: AppTheme.textMuted.withValues(alpha: 0.7)),
-                        prefixIcon: Icon(Icons.auto_awesome, color: AppTheme.primary),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                        suffixIcon: IconButton(
-                          icon: Icon(Icons.send, color: AppTheme.primary),
-                          onPressed: () => _onAiSearchSubmit(_aiSearchController.text),
+                  if (aiEnabled)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceLight,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 10, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: TextField(
+                        controller: _aiSearchController,
+                        onSubmitted: _onAiSearchSubmit,
+                        style: const TextStyle(color: AppTheme.textMain, fontWeight: FontWeight.w500),
+                        decoration: InputDecoration(
+                          hintText: '✨ Describe a vibe or plot...',
+                          hintStyle: TextStyle(color: AppTheme.textMuted.withValues(alpha: 0.7)),
+                          prefixIcon: Icon(Icons.auto_awesome, color: AppTheme.primary),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                          suffixIcon: IconButton(
+                            icon: Icon(Icons.send, color: AppTheme.primary),
+                            onPressed: () => _onAiSearchSubmit(_aiSearchController.text),
+                          ),
                         ),
                       ),
                     ),
-                  ),
                   // Search Bar
                   Container(
                     decoration: BoxDecoration(

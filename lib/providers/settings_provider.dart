@@ -21,3 +21,24 @@ class AutoTimezoneShiftNotifier extends StateNotifier<bool> {
     await prefs.setBool('autoTimezoneShift', value);
   }
 }
+
+final aiEnabledProvider = StateNotifierProvider<AiEnabledNotifier, bool>((ref) {
+  return AiEnabledNotifier();
+});
+
+class AiEnabledNotifier extends StateNotifier<bool> {
+  AiEnabledNotifier() : super(true) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    state = prefs.getBool('aiEnabled') ?? true;
+  }
+
+  Future<void> toggle(bool value) async {
+    state = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('aiEnabled', value);
+  }
+}

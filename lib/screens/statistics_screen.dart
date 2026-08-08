@@ -6,6 +6,7 @@ import 'notifications_drawer.dart';
 import 'navigation_drawer.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/statistics_provider.dart';
+import '../providers/settings_provider.dart';
 import '../services/ai_service.dart';
 
 final statsYearFilterProvider = StateProvider<String>((ref) => 'All Time');
@@ -183,7 +184,8 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // AI Recap Card
-                    Container(
+                    if (ref.watch(aiEnabledProvider))
+                      Container(
                       margin: const EdgeInsets.only(bottom: 24),
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(

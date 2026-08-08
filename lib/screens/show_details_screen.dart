@@ -8,6 +8,7 @@ import '../services/supabase_service.dart';
 import '../services/ai_service.dart';
 import '../models/show.dart';
 import '../theme/app_theme.dart';
+import '../providers/settings_provider.dart';
 
 class ShowDetailsScreen extends ConsumerStatefulWidget {
   final int tmdbId;
@@ -110,7 +111,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(color: AppTheme.primary),
+            CircularProgressIndicator(color: AppTheme.primary),
             const SizedBox(height: 16),
             const Text('Analyzing story arc...', style: TextStyle(color: AppTheme.textMuted)),
           ],
@@ -140,7 +141,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
             child: ListView(
               controller: controller,
               children: [
-                const Text('✨ Spoiler-Free Recap', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                Text('✨ Spoiler-Free Recap', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primary)),
                 const SizedBox(height: 16),
                 Text(recap.replaceAll('**', ''), style: const TextStyle(color: Colors.white, fontSize: 16, height: 1.5)),
               ],
@@ -407,7 +408,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                       ((tmdbData!['genres'] as List).map((g) => g['name']).join(', ')),
                       style: const TextStyle(color: AppTheme.textMuted, fontSize: 12),
                     ),
-                  if (localData?.show.customTags != null && localData!.show.customTags!.isNotEmpty) ...[
+                  if (ref.watch(aiEnabledProvider) && localData?.show.customTags != null && localData!.show.customTags!.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Wrap(
                       spacing: 8,
@@ -434,7 +435,8 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                     ..._buildTrailerButton(tmdbData!['videos']['results']),
 
                   if (widget.type == 'tv' && localData != null) ...[
-                    SizedBox(
+                    if (ref.watch(aiEnabledProvider)) ...[
+                      SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: () => _triggerMemoryRefresh(),
@@ -448,6 +450,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                         label: const Text('Memory Refresh', style: TextStyle(fontWeight: FontWeight.bold)),
                       ),
                     ),
+                    ],
                     const SizedBox(height: 24),
                     const Text('Seasons', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textMain)),
                     const SizedBox(height: 16),

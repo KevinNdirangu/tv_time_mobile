@@ -784,8 +784,10 @@ class SupabaseActions {
       final nextShowId = (maxIdData != null ? maxIdData['id'] as int : 0) + 1;
       
       String autoTags = '';
+      final prefs = await SharedPreferences.getInstance();
+      final aiEnabled = prefs.getBool('aiEnabled') ?? true;
       final hasAiKey = (await AiService.getApiKey()) != null;
-      if (hasAiKey) {
+      if (aiEnabled && hasAiKey) {
         autoTags = await AiService.autoTag(data['title'] ?? data['name'], data['overview'] ?? '', ((data['genres'] ?? []) as List).map((g) => g['name']).join(', '));
       }
 

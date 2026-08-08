@@ -8,6 +8,11 @@ class AiService {
     return prefs.getString('groq_api_key');
   }
 
+  static Future<bool> hasKey() async {
+    final key = await getApiKey();
+    return key != null && key.isNotEmpty;
+  }
+
   static Future<void> saveApiKey(String key) async {
     final prefs = await SharedPreferences.getInstance();
     if (key.isEmpty) {

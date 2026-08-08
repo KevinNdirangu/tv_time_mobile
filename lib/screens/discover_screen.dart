@@ -330,11 +330,11 @@ class _DiscoverScreenState extends ConsumerState<DiscoverScreen> {
                       decoration: InputDecoration(
                         hintText: '✨ Describe a vibe or plot...',
                         hintStyle: TextStyle(color: AppTheme.textMuted.withValues(alpha: 0.7)),
-                        prefixIcon: Icon(Icons.auto_awesome, color: AppTheme.accent),
+                        prefixIcon: Icon(Icons.auto_awesome, color: AppTheme.primary),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(vertical: 16),
                         suffixIcon: IconButton(
-                          icon: const Icon(Icons.send, color: AppTheme.accent),
+                          icon: Icon(Icons.send, color: AppTheme.primary),
                           onPressed: () => _onAiSearchSubmit(_aiSearchController.text),
                         ),
                       ),

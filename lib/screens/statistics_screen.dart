@@ -193,13 +193,13 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.5)),
+                        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.5)),
                       ),
                       child: Column(
                         children: [
-                          const Text(
+                          Text(
                             '✨ AI TV Time Recap',
-                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.accent),
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.primary),
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -209,7 +209,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                           ),
                           const SizedBox(height: 16),
                           if (_isGeneratingRecap)
-                            const CircularProgressIndicator(color: AppTheme.accent)
+                            CircularProgressIndicator(color: AppTheme.primary)
                           else if (_aiRecap != null)
                             Container(
                               padding: const EdgeInsets.all(16),
@@ -233,7 +233,7 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                                 });
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppTheme.accent,
+                                backgroundColor: AppTheme.primary,
                                 foregroundColor: Colors.black,
                                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

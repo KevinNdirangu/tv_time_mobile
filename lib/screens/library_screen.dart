@@ -149,6 +149,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                                     value: _sort,
                                     items: const [
                                       DropdownMenuItem(value: 'lastWatchedDesc', child: Text('Last Watched')),
+                                      DropdownMenuItem(value: 'lastWatchedAsc', child: Text('Oldest Watched')),
                                       DropdownMenuItem(value: 'titleAsc', child: Text('Title (A-Z)')),
                                       DropdownMenuItem(value: 'addedDesc', child: Text('Recently Added')),
                                       DropdownMenuItem(value: 'episodesDesc', child: Text('Most Watched')),
@@ -646,11 +647,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           final bMissing = b.airedEpisodes == 0 ? 1 : 0;
           if (aMissing == bMissing) return a.show.title.compareTo(b.show.title);
           return bMissing.compareTo(aMissing);
+        case 'lastWatchedAsc':
         case 'lastWatchedDesc':
         default:
           final dateA = a.lastWatched != null ? DateTime.parse(a.lastWatched!) : DateTime.fromMillisecondsSinceEpoch(0);
           final dateB = b.lastWatched != null ? DateTime.parse(b.lastWatched!) : DateTime.fromMillisecondsSinceEpoch(0);
-          return dateB.compareTo(dateA);
+          return _sort == 'lastWatchedAsc' ? dateA.compareTo(dateB) : dateB.compareTo(dateA);
       }
     });
 

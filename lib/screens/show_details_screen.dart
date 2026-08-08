@@ -571,6 +571,9 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
       
       return ListTile(
         title: Text('E${ep['episode_number'].toString().padLeft(2, '0')} $epTitle', style: TextStyle(color: isWatched ? AppTheme.textMuted : AppTheme.textMain)),
+        subtitle: isWatched && ep['watched_at'] != null
+            ? Text('Logged: ${_formatDate(ep['watched_at'])}', style: const TextStyle(color: AppTheme.textMuted, fontSize: 10))
+            : (!hasAired ? Text(airDateText, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10)) : null),
         onTap: hasAired ? () async {
           // Optimistic update
           setState(() {

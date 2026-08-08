@@ -310,12 +310,20 @@ class SupabaseActions {
     final watchRes = await client.from('watch_history').select('episode_id, watched_at').filter('episode_id', 'in', epIds);
     final watchedIds = <int>[];
     String? latestWatched;
+    final watchMap = <int, String>{};
     for (var row in (watchRes as List)) {
       watchedIds.add(row['episode_id'] as int);
       if (row['watched_at'] != null) {
+        watchMap[row['episode_id'] as int] = row['watched_at'];
         if (latestWatched == null || DateTime.parse(row['watched_at']).isAfter(DateTime.parse(latestWatched))) {
           latestWatched = row['watched_at'];
         }
+      }
+    }
+    
+    for (var ep in episodes) {
+      if (watchMap.containsKey(ep['id'])) {
+        ep['watched_at'] = watchMap[ep['id']];
       }
     }
     

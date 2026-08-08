@@ -6,6 +6,7 @@ import 'notifications_drawer.dart';
 import 'navigation_drawer.dart';
 import '../providers/notifications_provider.dart';
 import '../providers/statistics_provider.dart';
+import '../services/ai_service.dart';
 
 final statsYearFilterProvider = StateProvider<String>((ref) => 'All Time');
 
@@ -17,6 +18,33 @@ class StatisticsScreen extends ConsumerStatefulWidget {
 }
 
 class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
+  String? _aiRecap;
+  bool _isGeneratingRecap = false;
+  
+  Future<void> _generateRecap(Map<String, dynamic> stats) async {
+    final hasKey = await AiService.hasKey();
+    if (!hasKey && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please configure your Groq API key in Settings first.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isGeneratingRecap = true;
+      _aiRecap = null;
+    });
+
+    final recap = await AiService.generateUserRecap(stats);
+
+    if (mounted) {
+      setState(() {
+        _isGeneratingRecap = false;
+        _aiRecap = recap;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final notifications = ref.watch(notificationsProvider);
@@ -154,6 +182,67 @@ class _StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // AI Recap Card
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [const Color(0xFF2A2A3E), AppTheme.background],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.5)),
+                      ),
+                      child: Column(
+                        children: [
+                          const Text(
+                            '✨ AI TV Time Recap',
+                            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.accent),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Generate a fun, personalized summary of your watching habits!',
+                            style: TextStyle(color: AppTheme.textMuted),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          if (_isGeneratingRecap)
+                            const CircularProgressIndicator(color: AppTheme.accent)
+                          else if (_aiRecap != null)
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                              ),
+                              child: Text(_aiRecap!, style: const TextStyle(color: Colors.white, height: 1.5)),
+                            )
+                          else
+                            ElevatedButton(
+                              onPressed: () {
+                                _generateRecap({
+                                  'timeWatched': '\$mo months, \$d days, \$h hours',
+                                  'episodesLogged': '\$tvSeen',
+                                  'moviesWatched': '\$moviesSeen',
+                                  'topShows': topShows.take(5).map((s) => s['title']).toList(),
+                                  'topGenres': top10Genres.take(3).map((g) => g.key).toList(),
+                                });
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppTheme.accent,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text('Generate My Recap', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            ),
+                        ],
+                      ),
+                    ),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [

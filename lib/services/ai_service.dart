@@ -66,6 +66,36 @@ Output ONLY the comma-separated tags, nothing else.''';
     }
   }
 
+  static Future<List<String>> smartSearch(String vibeQuery) async {
+    final prompt = '''You are a TV show and Movie recommendation engine. The user is looking for something to watch based on this vibe or description: "$vibeQuery".
+Please recommend exactly 5 relevant TV show or movie titles. 
+Output ONLY a JSON array of strings containing the titles. Do not include any markdown formatting, backticks, or extra text. Example output: ["Inception", "Interstellar", "The Matrix", "Tenet", "Blade Runner 2049"]''';
+    
+    try {
+      final result = await callGroq(prompt);
+      final cleanResult = result.replaceAll('```json', '').replaceAll('```', '').trim();
+      final List<dynamic> parsed = jsonDecode(cleanResult);
+      return parsed.map((e) => e.toString()).toList();
+    } catch (e) {
+      print('Smart search failed: $e');
+      return [];
+    }
+  }
+
+  static Future<String> generateUserRecap(Map<String, dynamic> statsData) async {
+    final statsJson = jsonEncode(statsData);
+    final prompt = '''You are a fun and energetic TV/Movie tracking assistant. The user has requested their "TV Time Recap" (similar to Spotify Wrapped).
+Here are their lifetime watching statistics:
+$statsJson
+Write a fun, highly engaging 2-3 paragraph summary celebrating their watching habits. Use markdown formatting, emojis, and a conversational tone. Do not use headers. Focus on their top genres, total time watched, and favorite shows.''';
+    try {
+      return await callGroq(prompt);
+    } catch (e) {
+      print('Recap failed: $e');
+      return 'Oops! I couldn\'t generate your recap right now.';
+    }
+  }
+
   static Future<String> chatWithLibrary(String query, String libraryData) async {
     final prompt = '''You are a helpful AI TV/Movie assistant inside a tracking app. The user has the following library data (Title|Status|Rating|Tags):
 $libraryData

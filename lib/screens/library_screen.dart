@@ -474,7 +474,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                       const SizedBox(height: 4),
                       Text(
                         isMovie ? 'Seen: ${_formatDate(libItem.lastWatched!)}' : 'Last watched: ${_formatDate(libItem.lastWatched!)}',
-                        style: const TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: AppTheme.primary, fontSize: 10, fontWeight: FontWeight.bold),
                       ),
                     ],
                     if (!isMovie) ...[

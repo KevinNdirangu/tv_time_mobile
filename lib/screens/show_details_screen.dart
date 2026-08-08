@@ -312,7 +312,7 @@ class _ShowDetailsScreenState extends ConsumerState<ShowDetailsScreen> {
                       ],
                       if (localData?.lastWatched != null && localData!.watchedEpisodeIds.isNotEmpty) ...[
                         const SizedBox(width: 16),
-                        const Icon(Icons.calendar_today, size: 14, color: AppTheme.primary),
+                        Icon(Icons.calendar_today, size: 14, color: AppTheme.primary),
                         const SizedBox(width: 4),
                         Text(
                           '${_formatDate(localData!.lastWatched!)}',

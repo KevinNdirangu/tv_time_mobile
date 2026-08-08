@@ -1,31 +1,47 @@
-import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AiService {
   static Future<String?> getApiKey() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('gemini_api_key');
+    return prefs.getString('groq_api_key');
   }
 
   static Future<void> saveApiKey(String key) async {
     final prefs = await SharedPreferences.getInstance();
     if (key.isEmpty) {
-      await prefs.remove('gemini_api_key');
+      await prefs.remove('groq_api_key');
     } else {
-      await prefs.setString('gemini_api_key', key);
+      await prefs.setString('groq_api_key', key);
     }
   }
 
-  static Future<String> callGemini(String prompt) async {
+  static Future<String> callGroq(String prompt) async {
     final apiKey = await getApiKey();
     if (apiKey == null || apiKey.isEmpty) {
-      throw Exception('Gemini API Key not configured in Settings.');
+      throw Exception('Groq API Key not configured in Settings.');
     }
 
-    final model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey);
-    final content = [Content.text(prompt)];
-    final response = await model.generateContent(content);
-    return response.text?.trim() ?? '';
+    final url = Uri.parse('https://api.groq.com/openai/v1/chat/completions');
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $apiKey',
+      },
+      body: jsonEncode({
+        'model': 'llama3-8b-8192',
+        'messages': [{'role': 'user', 'content': prompt}]
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['choices'][0]['message']['content'].toString().trim();
+    } else {
+      throw Exception('Groq error: ${response.body}');
+    }
   }
 
   static Future<String> generateRecap(String showTitle, List<Map<String, dynamic>> episodes) async {
@@ -33,7 +49,7 @@ class AiService {
     final prompt = '''You are a TV show recap assistant. The user wants a recap of the show "$showTitle". They have watched the following episodes:
 $epsList
 Generate a concise, spoiler-free recap of ONLY what happens in these specific episodes to refresh their memory before they watch the next episode. Do not spoil anything that happens after these episodes. Format the output in Markdown.''';
-    return await callGemini(prompt);
+    return await callGroq(prompt);
   }
 
   static Future<String> autoTag(String showTitle, String overview, String genres) async {
@@ -43,7 +59,7 @@ Overview: $overview
 Genres: $genres
 Output ONLY the comma-separated tags, nothing else.''';
     try {
-      return await callGemini(prompt);
+      return await callGroq(prompt);
     } catch (e) {
       print('Auto-tag failed: $e');
       return '';
@@ -55,6 +71,6 @@ Output ONLY the comma-separated tags, nothing else.''';
 $libraryJson
 The user says: "$query"
 Answer their query conversationally based on their library data. Do not show the JSON. Format output in Markdown.''';
-    return await callGemini(prompt);
+    return await callGroq(prompt);
   }
 }

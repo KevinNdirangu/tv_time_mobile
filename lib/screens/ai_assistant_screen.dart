@@ -42,7 +42,7 @@ class _AiAssistantScreenState extends ConsumerState<AiAssistantScreen> {
     if (text.isEmpty) return;
 
     if (!_hasKey) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please configure your Gemini API key in Settings first.')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please configure your Groq API key in Settings first.')));
       return;
     }
 

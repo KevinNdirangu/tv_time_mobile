@@ -781,7 +781,7 @@ class _AiConfigSectionState extends State<_AiConfigSection> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Enter your Google Gemini API key to enable AI Recaps, Smart Search, and Auto-Tagging.',
+                'Enter your Groq API key to enable AI Recaps, Smart Search, and Auto-Tagging.',
                 style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
               ),
               const SizedBox(height: 12),
@@ -790,7 +790,7 @@ class _AiConfigSectionState extends State<_AiConfigSection> {
                 obscureText: true,
                 style: const TextStyle(color: AppTheme.textMain),
                 decoration: InputDecoration(
-                  hintText: 'AIza...',
+                  hintText: 'gsk_...',
                   hintStyle: const TextStyle(color: AppTheme.textMuted),
                   filled: true,
                   fillColor: AppTheme.surfaceLight,
